@@ -6,7 +6,6 @@ The only existing solution that we are currently aware of for testing Kerberos a
 
 ### System Requirements ###
 * Burp Suite - tested on version 1.7.05 (both Pro and Free)
-  * Also appears to run on Free version but not tested
 * Tested on Windows and Linux (Kali)
 
 ### Installation ###
