@@ -5,10 +5,9 @@ Berserko is a Burp extension to add support for performing Kerberos authenticati
 The only existing solution that we are currently aware of for testing Kerberos applications using Burp is to chain through [Fiddler](http://www.telerik.com/fiddler), with authentication set up according to [these instructions](http://stackoverflow.com/questions/26499875/kerberos-authentication-with-burp-proxy). But Fiddler is Windows-only, and chaining proxies adds complexity and hinders performance, so it's nice to have Kerberos capability within Burp itself. 
 
 ### System Requirements ###
-* Burp Suite - tested on Pro version 1.7.05
+* Burp Suite - tested on version 1.7.05 (both Pro and Free)
   * Also appears to run on Free version but not tested
-  * Believed not to run on 1.6 branch but not confirmed
-* Tested on Windows, but should run cross-platform
+* Tested on Windows and Linux (Kali)
 
 ### Installation ###
 Get the Berserko jar file from the `berserko\jar` folder in this repository.
