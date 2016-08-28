@@ -13,7 +13,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Timestamp;
@@ -810,7 +809,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 						spnegoMechOid,
 						GSSCredential.INITIATE_ONLY);
 
-
 				context = manager.createContext(gssServerName, spnegoMechOid, userCreds, GSSCredential.INDEFINITE_LIFETIME);
 				byte spnegoToken[] = new byte[0];
 				spnegoToken = context.initSecContext(spnegoToken, 0, spnegoToken.length);
@@ -887,9 +885,13 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				{
 					if( e.getException().getClass().getName().contains( "TGTExpiredException"))
 					{
-						// TODO: catch exceptions here
 						clearLoginContext();
 						setupLoginContext();
+						
+						if( !gotTGT)
+						{
+							return null;
+						}
 						
 						try
 						{
@@ -1106,6 +1108,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		}
 	}
 	
+	@SuppressWarnings("serial")
 	public class TGTExpiredException extends Exception {
 	    public TGTExpiredException(String message) {
 	        super(message);
