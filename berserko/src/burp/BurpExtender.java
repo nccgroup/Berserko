@@ -14,6 +14,8 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -783,7 +785,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 	// // http://stackoverflow.com/questions/24074507/how-to-generate-the-kerberos-security-token
 	@SuppressWarnings("rawtypes")
-	private class GetTokenAction implements PrivilegedAction
+	private class GetTokenAction implements PrivilegedExceptionAction
 	{
 		private String spn;
 
@@ -793,7 +795,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		}
 
 		@Override
-		public Object run() {
+		public Object run() throws TGTExpiredException {
 
 			String encodedToken = "";
 			GSSContext context = null;
@@ -818,6 +820,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				if( e.getMessage().contains("Server not found in Kerberos database"))
 				{
 					alertAndLog( 1, String.format( "Failed to acquire service ticket for %s - service name not recognised by KDC", spn));
+				}
+				else if( e.getMessage().contains("Failed to find any Kerberos tgt"))
+				{
+					alertAndLog( 1, String.format( "Failed to acquire token for service %s, TGT has expired? Trying to get a new one...", spn));
+					throw new TGTExpiredException("TGT Expired");
 				}
 				else
 				{
@@ -876,11 +883,32 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 					GetTokenAction tokenAction = new GetTokenAction( spn);
 					ctp = (ContextTokenPair) Subject.doAs(loginContext.getSubject(), tokenAction);
 				}
-				catch( Exception e)
+				catch( PrivilegedActionException e)
 				{
-					alertAndLog( 1, "Exception thrown in getToken: " + e.getMessage());
-					logException(2, e);
-					return null;
+					if( e.getException().getClass().getName().contains( "TGTExpiredException"))
+					{
+						// TODO: catch exceptions here
+						clearLoginContext();
+						setupLoginContext();
+						
+						try
+						{
+							GetTokenAction tokenAction = new GetTokenAction( spn);
+							ctp = (ContextTokenPair) Subject.doAs(loginContext.getSubject(), tokenAction);
+						}
+						catch( PrivilegedActionException ee)
+						{
+							alertAndLog( 1, "Exception thrown when trying to get token with new TGT: " + ee.getMessage());
+							logException(2, ee);
+							return null;
+						}
+					}
+					else
+					{
+						alertAndLog( 1, "Exception thrown in getToken: " + e.getMessage());
+						logException(2, e);
+						return null;
+					}
 				}
 			}
 		}
@@ -1076,7 +1104,12 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		{
 			return token;
 		}
-
+	}
+	
+	public class TGTExpiredException extends Exception {
+	    public TGTExpiredException(String message) {
+	        super(message);
+	    }
 	}
 
 	// ================== GUI code starts here ========================================
@@ -2117,8 +2150,5 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		public void actionPerformed(ActionEvent e) {
 			JOptionPane.showMessageDialog(null, message, "Help", JOptionPane.INFORMATION_MESSAGE);
 		}
-
 	}
-
-
 }
