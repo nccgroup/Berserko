@@ -359,26 +359,20 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		}
 	}
 
-	private boolean checkHostnameRegexp( String input, boolean multiComponent)
+	private boolean checkHostnameRegexp( String input)
 	{
 		// http://stackoverflow.com/questions/1418423/the-hostname-regex
 		String pattern = "^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\\.?$";
 		Pattern r = Pattern.compile(pattern);
 
 		Matcher m = r.matcher(input);
-		if (m.find())	// check for a dot so it's not just a single component
-		{
-			if( multiComponent && !input.contains("."))
-			{
-				return false;
-			}
-
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		
+		return m.find();
+	}
+	
+	private boolean isMultiComponentHostname( String input)
+	{
+		return input.contains( ".");
 	}
 
 	/*
@@ -1800,12 +1794,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			newKdcTextField.setText(newKdcTextField.getText().substring(0, newKdcTextField.getText().length() - 1));
 		}
 
-		if( !checkHostnameRegexp(newDomainDNSNameTextField.getText(), true))
+		if( !checkHostnameRegexp(newDomainDNSNameTextField.getText()))
 		{
 			JOptionPane.showMessageDialog( null, "DNS domain name does not match hostname regexp - please check", "Warning", JOptionPane.WARNING_MESSAGE);
 		}
+		else if( !isMultiComponentHostname(newDomainDNSNameTextField.getText()))
+		{
+			JOptionPane.showMessageDialog( null, "This seems to be a single-component DNS name - this isn't valid for Windows domains but might be valid for other Kerberos realms", "Warning", JOptionPane.WARNING_MESSAGE);
+		}
 
-		if( !checkHostnameRegexp(newKdcTextField.getText(), false))
+		if( !checkHostnameRegexp(newKdcTextField.getText()))
 		{
 			JOptionPane.showMessageDialog( null, "KDC hostname does not match hostname regexp - please check", "Warning", JOptionPane.WARNING_MESSAGE);
 		}
