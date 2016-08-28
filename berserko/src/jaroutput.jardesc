@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="WINDOWS-1252" standalone="no"?>
 <jardesc>
-    <jar path="berserko/jar/berserko-0.8alpha.jar"/>
+    <jar path="berserko/jar/berserko.jar"/>
     <options buildIfNeeded="true" compress="true" descriptionLocation="/berserko/src/jaroutput.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
     <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
     <selectedProjects/>
