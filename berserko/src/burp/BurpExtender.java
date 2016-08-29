@@ -2085,16 +2085,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		}
 		catch( SocketTimeoutException e)
 		{
-			domainStatusTextField.setText( "Couldn't connect to port 88 (Kerberos) on KDC");
-			JOptionPane.showMessageDialog( null, "Couldn't connect to port 88 (Kerberos) on KDC:" + kdcHost, "Failure", JOptionPane.ERROR_MESSAGE);
-			log( 1, "Unexpected error when testing connectivity to KDC: " + e.getMessage());
-			logException( 2, e);
+			domainStatusTextField.setText( "Couldn't connect to port 88 (Kerberos) on KDC - socket timed out");
+			JOptionPane.showMessageDialog( null, "Couldn't connect to port 88 (Kerberos) on KDC:" + kdcHost + ". Socket timed out - check hostname?", "Failure", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 		catch( Exception e)
 		{
 			domainStatusTextField.setText( "Failed to connect to port 88 on KDC");
 			JOptionPane.showMessageDialog( null, "Failed to connect to port 88 on " + kdcHost + ": " + e.getMessage(), "Failure", JOptionPane.ERROR_MESSAGE);
+			log( 1, "Unexpected error when testing connectivity to KDC: " + e.getMessage());
+			logException( 2, e);
 			return;
 		}
 
