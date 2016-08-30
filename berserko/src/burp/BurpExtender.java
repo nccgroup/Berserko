@@ -85,10 +85,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	private final String tabName = "Berserko";
 
 	private List<String> workingSet = null;
-	private Map<String,String> hostnameToSPNMap = null;
-	private List<String> failedSPNs = null;
-	private Map<String,List<String>> failedSPNsForHost = null;
-	private List<String> hostnamesWithUnknownSPN = null;
+	private Map<String,String> hostnameToSpnMap = null;
+	private List<String> failedSpns = null;
+	private Map<String,List<String>> failedSpnsForHost = null;
+	private List<String> hostnamesWithUnknownSpn = null;
 	private ContextCache contextCache  = null;
 
 	//config
@@ -144,10 +144,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 		clearLoginContext();
 		workingSet = Collections.synchronizedList(new ArrayList<String>());	// this should be sufficient for synchronizing access to workingSet given that we are never iterating over it
-		hostnameToSPNMap = new ConcurrentHashMap<String, String>();
-		failedSPNs = Collections.synchronizedList(new ArrayList<String>());
-		failedSPNsForHost = new ConcurrentHashMap<String, List<String>>();
-		hostnamesWithUnknownSPN = Collections.synchronizedList(new ArrayList<String>());
+		hostnameToSpnMap = new ConcurrentHashMap<String, String>();
+		failedSpns = Collections.synchronizedList(new ArrayList<String>());
+		failedSpnsForHost = new ConcurrentHashMap<String, List<String>>();
+		hostnamesWithUnknownSpn = Collections.synchronizedList(new ArrayList<String>());
 		contextCache = new ContextCache();
 	}
 
@@ -291,13 +291,13 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		logConfig();
 	}
 	
-	private void addSPNToListIfNotInvalid( List<String> l, String spn, String hostname)
+	private void addSpnToListIfNotInvalid( List<String> l, String spn, String hostname)
 	{
-		if( !failedSPNs.contains(spn))
+		if( !failedSpns.contains(spn))
 		{
-			if( failedSPNsForHost.containsKey( hostname.toLowerCase()))
+			if( failedSpnsForHost.containsKey( hostname.toLowerCase()))
 			{
-				if( failedSPNsForHost.get( hostname.toLowerCase()).contains(spn))
+				if( failedSpnsForHost.get( hostname.toLowerCase()).contains(spn))
 				{
 					return;
 				}
@@ -310,32 +310,32 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	{
 		List<String> ret = new ArrayList<String>();
 		
-		if( hostnameToSPNMap.containsKey(hostname.toLowerCase()))
+		if( hostnameToSpnMap.containsKey(hostname.toLowerCase()))
 		{
-			ret.add( hostnameToSPNMap.get(hostname.toLowerCase()));
+			ret.add( hostnameToSpnMap.get(hostname.toLowerCase()));
 		}
 		else
 		{
-			if( !hostnamesWithUnknownSPN.contains( hostname.toLowerCase()))
+			if( !hostnamesWithUnknownSpn.contains( hostname.toLowerCase()))
 			{
-				hostnamesWithUnknownSPN.add( hostname.toLowerCase());
+				hostnamesWithUnknownSpn.add( hostname.toLowerCase());
 			}
 			
 			if( isPlainhostname(hostname))
 			{
-				addSPNToListIfNotInvalid( ret, "HTTP/" + expandHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
-				addSPNToListIfNotInvalid( ret, "http/" + expandHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
-				addSPNToListIfNotInvalid( ret, "HTTP/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
-				addSPNToListIfNotInvalid( ret, "http/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "HTTP/" + expandHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "http/" + expandHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "HTTP/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "http/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
 				// TODO: include port names
 				// TODO: include string from host headers
 			}
 			else
 			{
-				addSPNToListIfNotInvalid( ret, "HTTP/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
-				addSPNToListIfNotInvalid( ret, "http/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
-				addSPNToListIfNotInvalid( ret, "HTTP/" + getPlainHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
-				addSPNToListIfNotInvalid( ret, "http/" + getPlainHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "HTTP/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "http/" + hostname.toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "HTTP/" + getPlainHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
+				addSpnToListIfNotInvalid( ret, "http/" + getPlainHostname(hostname).toLowerCase() + "@" + getRealmName(), hostname);
 			}
 		}
 		
@@ -534,10 +534,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		System.setProperty("java.security.krb5.realm", domain.toUpperCase());
 		System.setProperty("java.security.krb5.kdc", kdcHost);
 		workingSet = Collections.synchronizedList(new ArrayList<String>());	// this should be sufficient for synchronizing access to workingSet given that we are never iterating over it
-		hostnameToSPNMap = new ConcurrentHashMap<String, String>();
-		failedSPNs = Collections.synchronizedList(new ArrayList<String>());
-		failedSPNsForHost = new ConcurrentHashMap<String, List<String>>();
-		hostnamesWithUnknownSPN = Collections.synchronizedList(new ArrayList<String>());
+		hostnameToSpnMap = new ConcurrentHashMap<String, String>();
+		failedSpns = Collections.synchronizedList(new ArrayList<String>());
+		failedSpnsForHost = new ConcurrentHashMap<String, List<String>>();
+		hostnamesWithUnknownSpn = Collections.synchronizedList(new ArrayList<String>());
 		contextCache = new ContextCache();
 
 		log( 2, String.format( "New domain DNS name (%s) and KDC hostname (%s) set", domainDNSName, kdcHost));
@@ -592,7 +592,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 							{
 								byte[] body = Arrays.copyOfRange( messageInfo.getRequest(), reqInfo.getBodyOffset(), messageInfo.getRequest().length);
 								log( 2, "Getting token for " + hostname);
-								ContextTokenSPNTriple ctst = getToken( hostnameToSpn(hostname));
+								ContextTokenSpnTriple ctst = getToken( hostnameToSpn(hostname));
 
 								if( ctst != null)
 								{
@@ -600,7 +600,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 									headers.add( buildAuthenticateHeaderFromToken(ctst.getToken()));
 									messageInfo.setRequest( helpers.buildHttpMessage(headers, body));
 									addHostnameToWorkingSet(hostname);
-									if( hostnamesWithUnknownSPN.contains( hostname.toLowerCase()))
+									if( hostnamesWithUnknownSpn.contains( hostname.toLowerCase()))
 									{
 										contextCache.AddToCache(ctst);
 									}
@@ -632,7 +632,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 							else
 							{
 								log( 2, "Getting token for " + hostname);
-								ContextTokenSPNTriple ctst = getToken( hostnameToSpn(hostname));
+								ContextTokenSpnTriple ctst = getToken( hostnameToSpn(hostname));
 
 								if( ctst != null)
 								{
@@ -640,7 +640,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 									log( 2, "Setting token in request to " + hostname);
 									headers.add( buildAuthenticateHeaderFromToken(ctst.getToken()));
 									messageInfo.setRequest( helpers.buildHttpMessage(headers, body));
-									if( hostnamesWithUnknownSPN.contains( hostname.toLowerCase()))
+									if( hostnamesWithUnknownSpn.contains( hostname.toLowerCase()))
 									{
 										contextCache.AddToCache(ctst);
 									}
@@ -688,7 +688,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 						{
 							String requestToken = getTokenFromAuthorizationNegotiateRequestHeader(getHeaderStartingWith(requestHeaders, "Authorization:"));
 
-							ContextTokenSPNTriple ctst = contextCache.GetFromCache(requestToken);
+							ContextTokenSpnTriple ctst = contextCache.GetFromCache(requestToken);
 
 							if( ctst != null)
 							{
@@ -704,15 +704,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 								else if( err.contains("AP_REP token id does not match"))
 								{
 									alertAndLog( 1, String.format( "Failed Kerberos authentication to host %s - possibly service ticket for wrong service being used, error message was %s", hostname, err));
-									log( 2, String.format( "SPN %s incorrect for hostname %s", ctst.getSPN(), hostname));
+									log( 2, String.format( "SPN %s incorrect for hostname %s", ctst.getSpn(), hostname));
 									
-									if( !failedSPNsForHost.containsKey(hostname.toLowerCase()))
+									if( !failedSpnsForHost.containsKey(hostname.toLowerCase()))
 									{
-										failedSPNsForHost.put( hostname.toLowerCase(), new ArrayList<String>());
+										failedSpnsForHost.put( hostname.toLowerCase(), new ArrayList<String>());
 									}
-									if( !failedSPNsForHost.get( hostname.toLowerCase()).contains( ctst.getSPN()))
+									if( !failedSpnsForHost.get( hostname.toLowerCase()).contains( ctst.getSpn()))
 									{
-										failedSPNsForHost.get( hostname.toLowerCase()).add( ctst.getSPN());
+										failedSpnsForHost.get( hostname.toLowerCase()).add( ctst.getSpn());
 									}
 								}
 								else
@@ -740,7 +740,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 							if( hostnameIsInScope(hostname) && !hostnameIsInWorkingSet(hostname))
 							{
 								log( 2, "Getting token for " + hostname);
-								ContextTokenSPNTriple ctst = getToken( hostnameToSpn(hostname));
+								ContextTokenSpnTriple ctst = getToken( hostnameToSpn(hostname));
 
 								if( ctst != null)
 								{
@@ -766,15 +766,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 											else if( err.contains("AP_REP token id does not match"))
 											{
 												alertAndLog( 1, String.format( "Failed Kerberos authentication to host %s - possibly service ticket for wrong service being used, error message was %s", hostname, err));
-												log( 2, String.format( "SPN %s incorrect for hostname %s", ctst.getSPN(), hostname));
+												log( 2, String.format( "SPN %s incorrect for hostname %s", ctst.getSpn(), hostname));
 												
-												if( !failedSPNsForHost.containsKey(hostname.toLowerCase()))
+												if( !failedSpnsForHost.containsKey(hostname.toLowerCase()))
 												{
-													failedSPNsForHost.put( hostname.toLowerCase(), new ArrayList<String>());
+													failedSpnsForHost.put( hostname.toLowerCase(), new ArrayList<String>());
 												}
-												if( !failedSPNsForHost.get( hostname.toLowerCase()).contains( ctst.getSPN()))
+												if( !failedSpnsForHost.get( hostname.toLowerCase()).contains( ctst.getSpn()))
 												{
-													failedSPNsForHost.get( hostname.toLowerCase()).add( ctst.getSPN());
+													failedSpnsForHost.get( hostname.toLowerCase()).add( ctst.getSpn());
 												}
 												
 												// TODO: maybe try again with the next SPN?
@@ -792,10 +792,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 									else
 									{
 										messageInfo.setResponse(resp.getResponse());
-										if( !hostnameToSPNMap.containsKey(hostname.toLowerCase()))
+										if( !hostnameToSpnMap.containsKey(hostname.toLowerCase()))
 										{
-											log( 2, String.format( "Storing hostname->SPN mapping: %s->%s", hostname.toLowerCase(), ctst.getSPN()));
-											hostnameToSPNMap.put( hostname.toLowerCase(), ctst.getSPN());
+											log( 2, String.format( "Storing hostname->SPN mapping: %s->%s", hostname.toLowerCase(), ctst.getSpn()));
+											hostnameToSpnMap.put( hostname.toLowerCase(), ctst.getSpn());
 										}
 									}
 								}
@@ -814,7 +814,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 						try
 						{
 							log( 2, "Getting token for " + hostname);
-							ContextTokenSPNTriple ctst = getToken( hostnameToSpn(hostname));
+							ContextTokenSpnTriple ctst = getToken( hostnameToSpn(hostname));
 	
 							if( ctst != null)
 							{
@@ -835,15 +835,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 										String err = ProcessErrorTokenResponse(ctst.getContext(), serverToken);
 	
 										alertAndLog( 1, String.format( "Failed Kerberos authentication to host %s - possibly service ticket for wrong service being used, error message was %s", hostname, err));
-										log( 2, String.format( "SPN %s incorrect for hostname %s", ctst.getSPN(), hostname));
+										log( 2, String.format( "SPN %s incorrect for hostname %s", ctst.getSpn(), hostname));
 										
-										if( !failedSPNsForHost.containsKey(hostname.toLowerCase()))
+										if( !failedSpnsForHost.containsKey(hostname.toLowerCase()))
 										{
-											failedSPNsForHost.put( hostname.toLowerCase(), new ArrayList<String>());
+											failedSpnsForHost.put( hostname.toLowerCase(), new ArrayList<String>());
 										}
-										if( !failedSPNsForHost.get( hostname.toLowerCase()).contains( ctst.getSPN()))
+										if( !failedSpnsForHost.get( hostname.toLowerCase()).contains( ctst.getSpn()))
 										{
-											failedSPNsForHost.get( hostname.toLowerCase()).add( ctst.getSPN());
+											failedSpnsForHost.get( hostname.toLowerCase()).add( ctst.getSpn());
 										}
 										
 										// TODO: maybe try again with the next SPN?
@@ -856,8 +856,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 								else
 								{
 									addHostnameToWorkingSet(hostname);
-									log( 2, String.format( "Storing hostname->SPN mapping: %s->%s", hostname.toLowerCase(), ctst.getSPN()));
-									hostnameToSPNMap.put( hostname.toLowerCase(), ctst.getSPN());
+									log( 2, String.format( "Storing hostname->SPN mapping: %s->%s", hostname.toLowerCase(), ctst.getSpn()));
+									hostnameToSpnMap.put( hostname.toLowerCase(), ctst.getSpn());
 									messageInfo.setResponse(resp.getResponse());
 								}
 							}
@@ -879,16 +879,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				
 						String requestToken = getTokenFromAuthorizationNegotiateRequestHeader(getHeaderStartingWith(requestHeaders, "Authorization:"));
 
-						ContextTokenSPNTriple ctst = contextCache.GetFromCache(requestToken);
+						ContextTokenSpnTriple ctst = contextCache.GetFromCache(requestToken);
 
 						if( ctst != null)
 						{
 							contextCache.RemoveFromCache(requestToken);
-							if( hostnamesWithUnknownSPN.contains( hostname.toLowerCase()))
+							if( hostnamesWithUnknownSpn.contains( hostname.toLowerCase()))
 							{
-								log( 2, String.format( "Storing hostname->SPN mapping: %s->%s", hostname.toLowerCase(), ctst.getSPN()));
-								hostnamesWithUnknownSPN.remove(hostname.toLowerCase());
-								hostnameToSPNMap.put( hostname.toLowerCase(), ctst.getSPN());
+								log( 2, String.format( "Storing hostname->SPN mapping: %s->%s", hostname.toLowerCase(), ctst.getSpn()));
+								hostnamesWithUnknownSpn.remove(hostname.toLowerCase());
+								hostnameToSpnMap.put( hostname.toLowerCase(), ctst.getSpn());
 							}
 						}
 					}
@@ -991,15 +991,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 					spnegoToken = context.initSecContext(spnegoToken, 0, spnegoToken.length);
 					encodedToken =  Base64.getEncoder().encodeToString( spnegoToken);
 
-					return new ContextTokenSPNTriple(context, spn, encodedToken);
+					return new ContextTokenSpnTriple(context, spn, encodedToken);
 				} 
 				catch (Exception e) {
 					if( e.getMessage().contains("Server not found in Kerberos database"))
 					{
 						alertAndLog( 1, String.format( "Failed to acquire service ticket for %s - service name not recognised by KDC", spn));
-						if( !failedSPNs.contains(spn))
+						if( !failedSpns.contains(spn))
 						{
-							failedSPNs.add( spn);
+							failedSpns.add( spn);
 						}
 						continue;
 					}
@@ -1049,9 +1049,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	}
 
 	@SuppressWarnings("unchecked")
-	private ContextTokenSPNTriple getToken( List<String> spns)
+	private ContextTokenSpnTriple getToken( List<String> spns)
 	{
-		ContextTokenSPNTriple ctst = null;
+		ContextTokenSpnTriple ctst = null;
 
 		if( !gotTGT)
 		{
@@ -1065,7 +1065,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				try
 				{
 					GetTokenAction tokenAction = new GetTokenAction( spns);
-					ctst = (ContextTokenSPNTriple) Subject.doAs(loginContext.getSubject(), tokenAction);
+					ctst = (ContextTokenSpnTriple) Subject.doAs(loginContext.getSubject(), tokenAction);
 				}
 				catch( PrivilegedActionException e)
 				{
@@ -1082,7 +1082,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 						try
 						{
 							GetTokenAction tokenAction = new GetTokenAction( spns);
-							ctst = (ContextTokenSPNTriple) Subject.doAs(loginContext.getSubject(), tokenAction);
+							ctst = (ContextTokenSpnTriple) Subject.doAs(loginContext.getSubject(), tokenAction);
 						}
 						catch( PrivilegedActionException ee)
 						{
@@ -1272,13 +1272,13 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		}
 	}
 
-	private class ContextTokenSPNTriple
+	private class ContextTokenSpnTriple
 	{
 		private GSSContext context;
 		private String token;
 		private String spn;
 
-		public ContextTokenSPNTriple( GSSContext c, String s, String t)
+		public ContextTokenSpnTriple( GSSContext c, String s, String t)
 		{
 			context = c;
 			token = t;
@@ -1295,7 +1295,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			return token;
 		}
 		
-		public String getSPN()
+		public String getSpn()
 		{
 			return spn;
 		}
@@ -1310,14 +1310,14 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	
 	public class ContextCache
 	{
-		private Map<String,ContextTokenSPNTriple> contextMap;
+		private Map<String,ContextTokenSpnTriple> contextMap;
 		private final int maxCache = 1000;
 		private int currentlyCached = 0;
 		
 		public ContextCache()
 		{
 			currentlyCached = 0;
-			contextMap = new ConcurrentHashMap<String, BurpExtender.ContextTokenSPNTriple>();
+			contextMap = new ConcurrentHashMap<String, BurpExtender.ContextTokenSpnTriple>();
 		}
 		
 		public boolean isEmpty()
@@ -1325,11 +1325,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			return currentlyCached == 0;
 		}
 		
-		public void AddToCache( ContextTokenSPNTriple ctst)
+		public void AddToCache( ContextTokenSpnTriple ctst)
 		{
 			if( currentlyCached < maxCache)
 			{
-				//log( 2, String.format( "ContextCache putting %s %s, contains %d", ctst.getToken(), ctst.getSPN(), currentlyCached+1));
+				//log( 2, String.format( "ContextCache putting %s %s, contains %d", ctst.getToken(), ctst.getSpn(), currentlyCached+1));
 				contextMap.put( ctst.getToken(), ctst);
 				currentlyCached += 1;
 			}
@@ -1351,7 +1351,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			}
 		}
 		
-		public ContextTokenSPNTriple GetFromCache( String token)
+		public ContextTokenSpnTriple GetFromCache( String token)
 		{
 			// save a lookup in the synchronised hashmap
 			if( currentlyCached == 0)
