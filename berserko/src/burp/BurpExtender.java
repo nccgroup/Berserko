@@ -1003,7 +1003,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 						}
 						continue;
 					}
-					else if( e.getMessage().contains("Failed to find any Kerberos tgt"))
+					else if( e.getMessage().contains("Failed to find any Kerberos tgt") || e.getMessage().contains("Ticket expired"))
 					{
 						alertAndLog( 1, String.format( "Failed to acquire token for service %s, TGT has expired? Trying to get a new one...", spn));
 						throw new TGTExpiredException("TGT Expired");
