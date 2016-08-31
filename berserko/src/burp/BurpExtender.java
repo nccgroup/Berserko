@@ -62,6 +62,8 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
+import com.sun.security.jgss.ExtendedGSSContext;
+
 // XXX: what about streaming responses?
 
 public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtensionStateListener
@@ -987,9 +989,21 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 							GSSCredential.INITIATE_ONLY);
 
 					context = manager.createContext(gssServerName, spnegoMechOid, userCreds, GSSCredential.INDEFINITE_LIFETIME);
+					ExtendedGSSContext extendedContext = null;
+					if( context instanceof ExtendedGSSContext)
+                	{
+                		extendedContext = (ExtendedGSSContext) context;
+                		extendedContext.requestDelegPolicy(true);
+                	}
 					byte spnegoToken[] = new byte[0];
 					spnegoToken = context.initSecContext(spnegoToken, 0, spnegoToken.length);
 					encodedToken =  Base64.getEncoder().encodeToString( spnegoToken);
+					
+					//if( extendedContext != null)
+					//{
+					//	log( 2, String.format( "getDelegPolicyState = %s for %s", extendedContext.getDelegPolicyState(), spn));
+					//	log( 2, String.format( "getCredDelegState = %s for %s", extendedContext.getCredDelegState(), spn));
+					//}
 
 					return new ContextTokenSpnTriple(context, spn, encodedToken);
 				} 
