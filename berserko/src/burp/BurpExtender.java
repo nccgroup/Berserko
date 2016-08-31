@@ -134,6 +134,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		if( savedConfigAvailable())
 		{
 			loadConfig();
+			setDomainAndKdc(domainDNSName, kdcHost);
 		}
 		else
 		{
@@ -144,6 +145,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 		manager = GSSManager.getInstance();
 
+		/*
 		clearLoginContext();
 		workingSet = Collections.synchronizedList(new ArrayList<String>());	// this should be sufficient for synchronizing access to workingSet given that we are never iterating over it
 		hostnameToSpnMap = new ConcurrentHashMap<String, String>();
@@ -151,6 +153,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		failedSpnsForHost = new ConcurrentHashMap<String, List<String>>();
 		hostnamesWithUnknownSpn = Collections.synchronizedList(new ArrayList<String>());
 		contextCache = new ContextCache();
+		*/
 	}
 
 	public void extensionUnloaded()
