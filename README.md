@@ -9,7 +9,7 @@ The only existing solution that we are currently aware of for testing Kerberos a
 * Tested on Windows and Linux (Kali)
 
 ### Installation ###
-Get the Berserko jar file from the `berserko\jar` folder in this repository.
+Get the latest Berserko jar file from the `berserko\jar` folder in this repository, or a numbered release from the `berserko\releases` folder
 
 Go to the *Extender* tab in Burp, select *Add*, make sure *Java* is selected as the *Extension type*, and then point it at the jar file. All being well, the *Berserko* tab should be added to the Burp UI.
 
@@ -21,7 +21,28 @@ Go to the *Extender* tab in Burp, select *Add*, make sure *Java* is selected as 
 * Hit the *Test credentials* button and check that you get a *TGT successfully acquired* response
 * Kerberos authentication should now be operational for hosts in the specified domain
 
-### Settings
+### Important: Delegation ###
+Some applications use Kerberos delegation on the server side to forward the client's identity to other servers (but there isn't an easy way to determine from the client side if this is in use).
+
+Berserko does support this, but there is a catch. Delegation only works if the user has a *forwardable* TGT (ticket-granting ticket). The Java implementation of Kerberos doesn't provide a way to programatically specify that a forwardable ticket should be acquired. This can only be done by adding an appropriate entry to the *krb5.conf* configuration file. 
+
+So, for delegation to work, you need to create (or edit) the *krb5.conf* file. 
+* the first place that will be searched for this file is the `\lib\security` subdirectory of the JRE that is running Burp
+* On Windows, you can also put it at `C:\WINDOWS\krb5.ini` (note the *ini* extension here rather than *conf*)
+* On Linux, you can also put it at `/etc/krb5.conf`
+
+More information in the *Locating the krb5.conf Configuration File* section of [this page](https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/tutorials/KerberosReq.html).
+
+Your *krb5.conf* file only needs to contain the two lines below. Obviously if you are editing an existing file rather than creating a new one (unlikely on Windows, possible on Linux) then you need to be a little bit careful, but simply adding the *forwardable = true* line to the *[libdefaults]* section (if it's not already there) will do the job.
+
+    [libdefaults]
+	    forwardable = true
+
+If you want to know whether this has been successful, note that Berserko will tell you whether or not it acquired a forwardable TGT when you use the *Test credentials* button.
+		
+Future versions of Berserko will hopefully have better support for all of this.
+
+### Settings ###
 There are various controls on the *Berserko* tab in Burp.
 
 The *Do Kerberos authentication* checkbox is a master switch. Until it is enabled, Berserko won't do anything at all.
@@ -30,7 +51,7 @@ The *Restore defaults* button will return Berserko to the default configuration 
 
 Some controls have a help button that will pop up more information.
 
-#### Domain Settings
+#### Domain Settings ####
 Specify the **Domain DNS Name** and the **KDC Host** using the controls in this section. The textboxes can't be edited directly; you have to use the 'Change' button to modify them.
 
 The *Domain DNS Name* should be the DNS name of the domain you wish to authenticate against (to be precise, this is actually the Kerberos realm). This should be something like `mydomain.acme.local`. It should not be the NETBIOS name of the domain (which would be something like `MYDOMAIN`).
@@ -41,7 +62,7 @@ Having supplied the *Domain DNS Name*, you can use the *Auto* button to try to a
 
 When the *Domain DNS Name* and *KDC Host* have been entered, use the *Test domain settings* button to test connectivity. All being well, you will get get a *Successfully contacted Kerberos service* response. 
 
-#### Domain Credentials
+#### Domain Credentials ####
 Specify the **Username** and **Password** for a domain account using the controls in this section. The textboxes can't be edited directly; you have to use the 'Change' button to modify them.
 
 The *Username* should just be the plain username. This should be something like `bob`. It should not be `MYDOMAIN\bob` or `bob@mydomain.acme.local` or similar.
@@ -50,19 +71,19 @@ Having supplied the credentials, you can use the *Test credentials* button. This
 
 The password will not be saved in the Berserko config for next time unless the *Save password in Burp config?* checkbox is ticked. All other settings will be saved though.
 
-#### Authentication Strategy
+#### Authentication Strategy ####
 The settings in this section control whether Berserko attempts Kerberos authentication 'reactively' (i.e. wait to get a 401 response from the server and then resend the request with a Kerberos authentication header added) or 'proactively' (i.e. add the Kerberos authentication header to the outgoing request).
 
 The advantage of proactive authentication is that it only requires one HTTP round trip, while reactive authentication requires two. The disadvantage of proactive authentication is that it is possible that Kerberos authentication headers will be sent to hosts which aren't expecting them. Berserko is also better able to diagnose authentication errors when using the reactive strategy. 
 
 The *Proactive Kerberos authentication, only after initial 401 received* option is a hybrid of these two approaches, where Berserko will authenticate reactively on the first request to a host, but will thereafter be proactive.
 
-#### Options
+#### Options ####
 If selected, the *Do not perform Kerberos authentication to servers which support NTLM* option will instruct Berserko not to attempt Kerberos authentication against hosts which support NTLM in addition to Kerberos (i.e. hosts that return both `WWW-Authenticate: NTLM` and `WWW-Authenticate: Negotiate` headers).
 
 The *Plain hostnames considered part of domain* option, if selected, means that Kerberos authentication will be attempted against hosts which are specified by 'plain hostnames' (i.e. hostnames that are not qualified with the domain). The main reason you might want to disable this would be if your machine was joined to a different domain from the one being authenticated against using Berserko (in which case, plain hostnames probably refer to hosts in the domain to which you are joined).
 
-#### Logging
+#### Logging ####
 The *Alert Level* and *Logging Level* can be configured here, to either NONE, NORMAL or VERBOSE.
 
 *Alert Level* controls the amount of information sent to Burp's *Alerts* tab.
@@ -71,10 +92,9 @@ The *Alert Level* and *Logging Level* can be configured here, to either NONE, NO
 
 ### Limitations ###
 * Berserko won't play particularly nicely with Burp's own *Platform Authentication* feature. It's OK to have Platform Authentication enabled, but don't configure it for any of the hosts that require Kerberos (rather than NTLM) authentication. 
-* Berserko has not been tested against any Kerberos instances except Windows. In theory it should work successfully against other Kerberos implementations, but that is not the focus of development.
-* Behaviour when a TGT (ticket-granting ticket) expires is so far untested. Normal lifetime of these tickets is 10 hours. If ticket expiry causes any problem, then disabling and re-enabling the Berserko extension should solve the problem (by forcing Berserko to acquire a new TGT).
 * Berserko can't make use of any custom host mappings defined using Burp's *Hostname Resolution* feature when resolving a KDC hostname. If this is a problem, just specify the IP address of the KDC in the *KDC host* box. Note this isn't an issue for the actual requests being sent from Burp, only for Berserko's own communications with the KDC.
 
 ### (Possible) Future plans ###
 * Use of already acquired Kerberos tickets on domain-joined machines (not sure if this is possible or not)
 * Capability to authenticate to multiple domains at the same time (this should work fine)
+* Better control over forwardable tickets and delegation
