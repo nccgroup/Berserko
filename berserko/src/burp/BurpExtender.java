@@ -39,6 +39,7 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
@@ -1172,6 +1173,21 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			logException(2, e);
 		}
 	}
+	
+	private boolean checkTgtForwardableFlag( Subject sub)
+	{
+		for( Object ob : sub.getPrivateCredentials())
+        {
+        	if( ob instanceof KerberosTicket)
+        	{
+        		KerberosTicket kt = (KerberosTicket) ob;
+        		boolean[] flags = kt.getFlags();
+        		return flags[1];
+        	}
+        }
+		
+		return false;
+	}
 
 	private void setupLoginContext()
 	{
@@ -1212,6 +1228,17 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				loginContext.login();
 				log( 2, "TGT successfully acquired");
 				gotTGT = true;
+				
+				boolean forwardable = checkTgtForwardableFlag(loginContext.getSubject());
+				
+				if( forwardable)
+				{
+        			log( 1, "TGT is forwardable - delegation should work OK");
+        		}
+        		else
+        		{
+        			log( 1, "TGT is not forwardable so delegation will not work.");
+        		}
 			}
 			catch( Exception e)
 			{
@@ -1443,6 +1470,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	private final String usernameHelpString = "Username for a domain account. Just the plain username, not DOMAIN\\username or username@DOMAIN.COM or anything like that.";
 	private final String kdcTestSuccessString = "Successfully contacted Kerberos service";
 	private final String credentialsTestSuccessString = "TGT successfully acquired";
+	private final String forwardableTgtString = "TGT is forwardable so delegation should work";
+	private final String notForwardableTgtString = "TGT is not forwardable so delegation will not work";
 	private final String alertLevelHelpString = "Controls level of logging performed to Burp's Alerts tab";
 	private final String loggingLevelHelpString = "Controls level of logging performed to extension's standard output";
 	private final String authStrategyHelpString = "There are three possible approaches here:\n\nReactive: when a 401 response is received from the server, add an appropriate Kerberos authentication header and resend the request. This is what Fiddler does.\nProactive: for hosts which are in scope for Kerberos authentication, add the Kerberos authentication header to outgoing requests (i.e. don't wait to get a 401).\nProactive after 401: use the reactive strategy for the first Kerberos authentication against a particular host, then if it was successful, move to proactive.\n\nThe Reactive approach is perhaps the most \"correct\", but is slower (requires an extra HTTP round trip to the server).\nThe Proactive approach is faster.\nThe Proactive after 401 approach is maybe a good compromise.";
@@ -2227,8 +2256,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		{
 			LoginContext loginContext = new LoginContext("KrbLogin", new KerberosCallBackHandler( username, password));
 			loginContext.login();
-			credentialsStatusTextField.setText( credentialsTestSuccessString);
-			JOptionPane.showMessageDialog( null, credentialsTestSuccessString, "Success", JOptionPane.INFORMATION_MESSAGE);
+			
+			boolean forwardable = checkTgtForwardableFlag(loginContext.getSubject());
+			
+			credentialsStatusTextField.setText( credentialsTestSuccessString + " (" + (forwardable ? forwardableTgtString : notForwardableTgtString) + ")");
+			JOptionPane.showMessageDialog( null, credentialsTestSuccessString + "\n\n(" + (forwardable ? forwardableTgtString : notForwardableTgtString) + ")", "Success", JOptionPane.INFORMATION_MESSAGE);
 		}
 		catch( Exception e)
 		{
