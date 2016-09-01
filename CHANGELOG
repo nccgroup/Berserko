@@ -1,0 +1,8 @@
+01 September 2016	- v0.81 (alpha)
+* Added support for delegation (using ExtendedGSSContext.requestDelegPolicy), although this requires krb5.conf to be set up correctly
+* Request new TGT after expiry
+* Attempt different SPNs if the first one tried doesn't work
+* Bug fixes and additional logging
+
+25 August 2016		- v0.8 (alpha)
+* Initial version
