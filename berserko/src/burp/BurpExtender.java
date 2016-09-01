@@ -131,6 +131,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 		callbacks.registerExtensionStateListener(this);
 
+		log( 1, "Berserko version " + versionString);
+		
 		if( savedConfigAvailable())
 		{
 			loadConfig();
