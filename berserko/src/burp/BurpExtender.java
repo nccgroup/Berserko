@@ -94,7 +94,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	private ContextCache contextCache  = null;
 
 	//config
-	private String domainDNSName;
+	private String domainDnsName;
 	private String kdcHost;
 	private String username;
 	private String password;
@@ -134,7 +134,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		if( savedConfigAvailable())
 		{
 			loadConfig();
-			setDomainAndKdc(domainDNSName, kdcHost);
+			setDomainAndKdc(domainDnsName, kdcHost);
 		}
 		else
 		{
@@ -224,7 +224,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 	private void logConfig()
 	{
-		log( 1, "Domain DNS Name     : " + domainDNSName);
+		log( 1, "Domain DNS Name     : " + domainDnsName);
 		log( 1, "KDC Host            : " + kdcHost);
 		log( 1, "Username            : " + username);
 		log( 1, "Password            : " + (password.isEmpty() ? "" : "****"));
@@ -239,7 +239,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	private void saveConfig()
 	{
 		saveSetting( "saved_config_marker", "x");
-		saveSetting( "domain_dns_name", domainDNSName);
+		saveSetting( "domain_dns_name", domainDnsName);
 		saveSetting( "kdc_host", kdcHost);
 		saveSetting( "username", username);
 		if( savePassword)
@@ -275,7 +275,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	private void loadConfig()
 	{
 		// we don't restore the masterSwitch setting from the saved config - it always starts as Off
-		domainDNSName = loadSetting( "domain_dns_name");
+		domainDnsName = loadSetting( "domain_dns_name");
 		kdcHost = loadSetting( "kdc_host");
 		username = loadSetting( "username");
 		if( loadSetting("password") != null)
@@ -375,7 +375,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		}
 		else
 		{
-			return hostname.toLowerCase().endsWith(domainDNSName.toLowerCase());
+			return hostname.toLowerCase().endsWith(domainDnsName.toLowerCase());
 		}
 	}
 
@@ -383,7 +383,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	{
 		if( isPlainhostname( hostname))
 		{
-			return hostname + "." + domainDNSName.toLowerCase();
+			return hostname + "." + domainDnsName.toLowerCase();
 		}
 		else
 		{
@@ -501,7 +501,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 	private String getRealmName()
 	{
-		return domainDNSName.toUpperCase();
+		return domainDnsName.toUpperCase();
 	}
 
 	private void clearLoginContext()
@@ -519,7 +519,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 	private void setDomainAndKdc( String domain, String kdc)
 	{
-		domainDNSName = domain;
+		domainDnsName = domain;
 		kdcHost = kdc;
 		
 		if( domain.isEmpty())
@@ -545,7 +545,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		hostnamesWithUnknownSpn = Collections.synchronizedList(new ArrayList<String>());
 		contextCache = new ContextCache();
 
-		log( 2, String.format( "New domain DNS name (%s) and KDC hostname (%s) set", domainDNSName, kdcHost));
+		log( 2, String.format( "New domain DNS name (%s) and KDC hostname (%s) set", domainDnsName, kdcHost));
 	}
 
 	private void setCredentials( String user, String pass)
@@ -1178,7 +1178,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			return;	// don't keep trying to get a TGT after a failure, until we are provided with new domain details or creds or whatever
 		}
 		
-		if( domainDNSName.isEmpty())
+		if( domainDnsName.isEmpty())
 		{
 			alertAndLog(1, "Domain DNS name is blank - not trying to acquire TGT");
 			loginFailed = true;
@@ -1216,29 +1216,29 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				if( (e.getCause() != null)
 						&& (e.getCause().getClass().getName()  == "java.net.UnknownHostException"))
 				{
-					alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - couldn't find DC %s. Not making further attempts until domain settings are changed.", domainDNSName, username, kdcHost));
+					alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - couldn't find DC %s. Not making further attempts until domain settings are changed.", domainDnsName, username, kdcHost));
 				}
 				else if( e.getMessage().startsWith( "Client not found in Kerberos database"))
 				{
-					alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - username appears to be invalid. Not making further attempts, to avoid account lockout. Try setting new credentials (and checking the domain details)", domainDNSName, username));
+					alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - username appears to be invalid. Not making further attempts, to avoid account lockout. Try setting new credentials (and checking the domain details)", domainDnsName, username));
 					//incorrectCreds = true;
 				}
 				else if( e.getMessage().startsWith( "Pre-authentication information was invalid"))
 				{
 					if( password.isEmpty())
 					{
-						alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - password appears to be invalid (it is blank). Not making further attempts, to avoid account lockout. Try setting new credentials (and checking the domain details)", domainDNSName, username));
+						alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - password appears to be invalid (it is blank). Not making further attempts, to avoid account lockout. Try setting new credentials (and checking the domain details)", domainDnsName, username));
 						//incorrectCreds = true;
 					}
 					else
 					{
-						alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - password appears to be invalid. Not making further attempts, to avoid account lockout. Try setting new credentials (and checking the domain details)", domainDNSName, username));
+						alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s - password appears to be invalid. Not making further attempts, to avoid account lockout. Try setting new credentials (and checking the domain details)", domainDnsName, username));
 						//incorrectCreds = true;
 					}
 				}
 				else
 				{
-					alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s. Not making further attempts until domain settings are changed. Error was: %s", domainDNSName, username, e.getMessage()));
+					alertAndLog( 1, String.format( "Failed to acquire TGT on domain %s with user %s. Not making further attempts until domain settings are changed. Error was: %s", domainDnsName, username, e.getMessage()));
 					logException( 2, e);
 				}
 
@@ -1399,15 +1399,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	JPanel optionsPanel;
 	JPanel loggingPanel;
 	JPanel dummyPanel;
-	JLabel domainDNSLabel;
+	JLabel domainDnsLabel;
 	JLabel kdcLabel;
-	JTextField domainDNSNameTextField;
+	JTextField domainDnsNameTextField;
 	JTextField kdcTextField;
 	JButton changeDomainSettingsButton;
 	JButton pingKDCButton;
-	JButton domainDNSNameHelpButton;
+	JButton domainDnsNameHelpButton;
 	JButton kdcHelpButton;
-	//JButton domainDNSNameAutoButton;
+	//JButton domainDnsNameAutoButton;
 	JButton kdcAutoButton;
 	JTextField domainStatusTextField;
 	JLabel usernameLabel;
@@ -1436,8 +1436,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	JButton ignoreNTLMServersHelpButton;
 	JButton includePlainhostnamesHelpButton;
 
-	//private final String domainDNSNameHelpString = "DNS name of the domain to authenticate against - not the NETBIOS name.\n\n\"Auto\" button will look for connection-specific DNS suffices on your local network interfaces.";
-	private final String domainDNSNameHelpString = "DNS name of the domain to authenticate against - not the NETBIOS name.";
+	private final String domainDnsNameHelpString = "DNS name of the domain to authenticate against - not the NETBIOS name.";
 	private final String kdcHelpString = "Hostname of a KDC (domain controller) for this domain.\n\n\"Auto\" button will do a DNS SRV lookup to try to find a KDC for the given domain.";
 	private final String usernameHelpString = "Username for a domain account. Just the plain username, not DOMAIN\\username or username@DOMAIN.COM or anything like that.";
 	private final String kdcTestSuccessString = "Successfully contacted Kerberos service";
@@ -1477,19 +1476,19 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				domainPanel = new JPanel(new GridBagLayout());
 				domainPanel.setBorder(BorderFactory.createTitledBorder( "Domain Settings"));
 
-				domainDNSLabel = new JLabel( "Domain DNS Name");
+				domainDnsLabel = new JLabel( "Domain DNS Name");
 				kdcLabel = new JLabel( "KDC Host");
-				domainDNSNameTextField = new JTextField();
+				domainDnsNameTextField = new JTextField();
 				kdcTextField = new JTextField();
 				domainStatusTextField = new JTextField();
-				domainDNSNameTextField.setEditable(false);
+				domainDnsNameTextField.setEditable(false);
 				kdcTextField.setEditable(false);
 				domainStatusTextField.setEditable(false);
 				changeDomainSettingsButton = new JButton( "Change...");
 				pingKDCButton = new JButton( "Test domain settings");
-				domainDNSNameHelpButton = new JButton("?");
+				domainDnsNameHelpButton = new JButton("?");
 				kdcHelpButton = new JButton("?");
-				//domainDNSNameAutoButton = new JButton( "Auto");
+				//domainDnsNameAutoButton = new JButton( "Auto");
 				kdcAutoButton = new JButton("Auto");
 
 				usernameLabel = new JLabel( "Username               ");
@@ -1550,16 +1549,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				callbacks.customizeUiComponent(authenticationStrategyPanel);
 				callbacks.customizeUiComponent(optionsPanel);
 				callbacks.customizeUiComponent(loggingPanel);
-				callbacks.customizeUiComponent(domainDNSLabel);
+				callbacks.customizeUiComponent(domainDnsLabel);
 				callbacks.customizeUiComponent(kdcLabel);
-				callbacks.customizeUiComponent(domainDNSNameTextField);
+				callbacks.customizeUiComponent(domainDnsNameTextField);
 				callbacks.customizeUiComponent(kdcTextField);
 				callbacks.customizeUiComponent(domainStatusTextField);
 				callbacks.customizeUiComponent(changeDomainSettingsButton);
 				callbacks.customizeUiComponent(pingKDCButton);
-				callbacks.customizeUiComponent(domainDNSNameHelpButton);
+				callbacks.customizeUiComponent(domainDnsNameHelpButton);
 				callbacks.customizeUiComponent(kdcHelpButton);
-				//callbacks.customizeUiComponent(domainDNSNameAutoButton);
+				//callbacks.customizeUiComponent(domainDnsNameAutoButton);
 				callbacks.customizeUiComponent(kdcAutoButton);
 				callbacks.customizeUiComponent(usernameLabel);
 				callbacks.customizeUiComponent(passwordLabel);
@@ -1592,7 +1591,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				gbc.weighty = 0.0;
 				gbc.gridx = 0;
 				gbc.gridy = 0;
-				domainPanel.add( domainDNSLabel, gbc);
+				domainPanel.add( domainDnsLabel, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
@@ -1605,7 +1604,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				gbc.gridx = 1;
 				gbc.gridy = 0;
 				gbc.gridwidth = 3;
-				domainPanel.add( domainDNSNameTextField, gbc);
+				domainPanel.add( domainDnsNameTextField, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
@@ -1639,7 +1638,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
                 gbc.weighty = 0.0;
                 gbc.gridx = 4;
                 gbc.gridy = 0;
-                domainPanel.add( domainDNSNameAutoButton, gbc);
+                domainPanel.add( domainDnsNameAutoButton, gbc);
 				 */
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
@@ -1652,7 +1651,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				gbc.weighty = 0.0;
 				gbc.gridx = 5;
 				gbc.gridy = 0;
-				domainPanel.add( domainDNSNameHelpButton, gbc);
+				domainPanel.add( domainDnsNameHelpButton, gbc);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
@@ -1912,9 +1911,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 					} 
 				} );
 
-				//domainDNSNameAutoButton.addActionListener(new ActionListener() { 
+				//domainDnsNameAutoButton.addActionListener(new ActionListener() { 
 				//  public void actionPerformed(ActionEvent e) { 
-				//	    domainDNSNameAuto();
+				//	    domainDnsNameAuto();
 				//	  } 
 				//	} );
 
@@ -1991,7 +1990,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 					} 
 				} );
 
-				domainDNSNameHelpButton.addActionListener( new HelpButtonActionListener( domainDNSNameHelpString));
+				domainDnsNameHelpButton.addActionListener( new HelpButtonActionListener( domainDnsNameHelpString));
 				kdcHelpButton.addActionListener( new HelpButtonActionListener( kdcHelpString));
 				usernameHelpButton.addActionListener( new HelpButtonActionListener( usernameHelpString));
 				alertLevelHelpButton.addActionListener( new HelpButtonActionListener( alertLevelHelpString));
@@ -2012,7 +2011,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	{
 		masterSwitchCheckBox.setSelected( masterSwitch);
 		masterSwitchEnabled( masterSwitch);
-		domainDNSNameTextField.setText( domainDNSName);
+		domainDnsNameTextField.setText( domainDnsName);
 		kdcTextField.setText( kdcHost);
 		domainStatusTextField.setText("");
 		credentialsStatusTextField.setText("");
@@ -2066,7 +2065,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 		
 		if( enabled)
 		{
-			if( domainDNSName.isEmpty() || kdcHost.isEmpty() || username.isEmpty())
+			if( domainDnsName.isEmpty() || kdcHost.isEmpty() || username.isEmpty())
 			{
 				JOptionPane.showMessageDialog( null, "Domain DNS Name, KDC Host, Username and (probably) Password must all be set, and ideally tested, before Kerberos authentication will work", "Warning", JOptionPane.WARNING_MESSAGE);
 			}
@@ -2079,22 +2078,22 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 	private void changeDomainSettings()
 	{
-		JTextField newDomainDNSNameTextField = new JTextField();
-		newDomainDNSNameTextField.setText(domainDNSName);
+		JTextField newDomainDnsNameTextField = new JTextField();
+		newDomainDnsNameTextField.setText(domainDnsName);
 		JTextField newKdcTextField = new JTextField();
 		newKdcTextField.setText( kdcHost);
 		final JComponent[] inputs = new JComponent[] {
 				new JLabel("Domain DNS Name"),
-				newDomainDNSNameTextField,
+				newDomainDnsNameTextField,
 				new JLabel("KDC Host"),
 				newKdcTextField,
 		};
 		JOptionPane.showMessageDialog(null, inputs, "Change domain settings", JOptionPane.PLAIN_MESSAGE);
 
-		if( newDomainDNSNameTextField.getText().endsWith("."))
+		if( newDomainDnsNameTextField.getText().endsWith("."))
 		{
 			JOptionPane.showMessageDialog( null, "Removing dot from end of DNS domain name", "Info", JOptionPane.INFORMATION_MESSAGE);
-			newDomainDNSNameTextField.setText(newDomainDNSNameTextField.getText().substring(0, newDomainDNSNameTextField.getText().length() - 1));
+			newDomainDnsNameTextField.setText(newDomainDnsNameTextField.getText().substring(0, newDomainDnsNameTextField.getText().length() - 1));
 		}
 		if( newKdcTextField.getText().endsWith("."))
 		{
@@ -2102,11 +2101,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			newKdcTextField.setText(newKdcTextField.getText().substring(0, newKdcTextField.getText().length() - 1));
 		}
 
-		if( !checkHostnameRegexp(newDomainDNSNameTextField.getText()))
+		if( !checkHostnameRegexp(newDomainDnsNameTextField.getText()))
 		{
 			JOptionPane.showMessageDialog( null, "DNS domain name does not match hostname regexp - please check", "Warning", JOptionPane.WARNING_MESSAGE);
 		}
-		else if( !isMultiComponentHostname(newDomainDNSNameTextField.getText()))
+		else if( !isMultiComponentHostname(newDomainDnsNameTextField.getText()))
 		{
 			JOptionPane.showMessageDialog( null, "This seems to be a single-component DNS name - this isn't valid for Windows domains but might be valid for other Kerberos realms", "Warning", JOptionPane.WARNING_MESSAGE);
 		}
@@ -2116,17 +2115,17 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			JOptionPane.showMessageDialog( null, "KDC hostname does not match hostname regexp - please check", "Warning", JOptionPane.WARNING_MESSAGE);
 		}
 
-		if( (newDomainDNSNameTextField.getText() != domainDNSName)
+		if( (newDomainDnsNameTextField.getText() != domainDnsName)
 				|| (newKdcTextField.getText() != kdcHost))		// don't do anything if values are unchanged
 		{
-			domainDNSName = newDomainDNSNameTextField.getText();
-			domainDNSNameTextField.setText( newDomainDNSNameTextField.getText());
+			domainDnsName = newDomainDnsNameTextField.getText();
+			domainDnsNameTextField.setText( newDomainDnsNameTextField.getText());
 			kdcHost = newKdcTextField.getText();
 			kdcTextField.setText( newKdcTextField.getText());
 			domainStatusTextField.setText("");
 			credentialsStatusTextField.setText("");
 
-			if( domainDNSName.isEmpty())
+			if( domainDnsName.isEmpty())
 			{
 				domainStatusTextField.setText( "Domain DNS name cannot be empty");
 			}
@@ -2135,10 +2134,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 				domainStatusTextField.setText( "KDC host cannot be empty");
 			}
 
-			setDomainAndKdc(domainDNSName, kdcHost);
+			setDomainAndKdc(domainDnsName, kdcHost);
 		}
 
-		domainDNSNameTextField.setText( newDomainDNSNameTextField.getText());
+		domainDnsNameTextField.setText( newDomainDnsNameTextField.getText());
 		kdcTextField.setText( newKdcTextField.getText());
 
 	}
@@ -2253,7 +2252,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 	private void pingKDC()
 	{
-		if( domainDNSNameTextField.getText().isEmpty())
+		if( domainDnsNameTextField.getText().isEmpty())
 		{
 			JOptionPane.showMessageDialog( null, "Domain DNS name not set yet", "Error", JOptionPane.ERROR_MESSAGE);
 			return;
@@ -2322,7 +2321,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 	}
 
 	/*
-	private void domainDNSNameAuto()
+	private void domainDnsNameAuto()
 	{
 		// XXX: write me
 		// might need to be platform-specific hacks
@@ -2332,7 +2331,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 
 	private void kdcAuto()
 	{
-		if( domainDNSName.isEmpty())
+		if( domainDnsName.isEmpty())
 		{
 			JOptionPane.showMessageDialog( null, "Have to set the domain DNS name first", "Failure", JOptionPane.ERROR_MESSAGE);
 			return;
@@ -2343,7 +2342,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			Hashtable<String, String> envProps = new Hashtable<String, String>();
 			envProps.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
 			DirContext dnsContext = new InitialDirContext(envProps);
-			Attributes dnsEntries = dnsContext.getAttributes( "_kerberos._tcp." + domainDNSName.toLowerCase(), new String[]{"SRV"});
+			Attributes dnsEntries = dnsContext.getAttributes( "_kerberos._tcp." + domainDnsName.toLowerCase(), new String[]{"SRV"});
 			if(dnsEntries != null) {
 				Attribute attr = dnsEntries.get("SRV");
 
@@ -2409,7 +2408,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab, IExtens
 			kdcTextField.setText( selectedValue);
 			domainStatusTextField.setText("");
 
-			setDomainAndKdc(domainDNSName, kdcHost);
+			setDomainAndKdc(domainDnsName, kdcHost);
 		}
 	}
 
