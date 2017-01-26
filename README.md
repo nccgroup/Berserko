@@ -14,33 +14,13 @@ Get the latest Berserko jar file from the `berserko\jar` folder in this reposito
 Go to the *Extender* tab in Burp, select *Add*, make sure *Java* is selected as the *Extension type*, and then point it at the jar file. All being well, the *Berserko* tab should be added to the Burp UI.
 
 ### Quick Start ###
-* Go the *Berserko* tab and tick the *Do Kerberos authentication* checkbox
-* Click the *Change* button in the *Domain Settings* panel and supply the DNS name of the domain (**not** the NETBIOS name) and the hostname (or IP address) of a KDC (domain controller)
-* Hit the *Test domain settings* button and check that you get a *Successfully contacted Kerberos service* response
-* Click the *Change* button in the *Domain Credentials* panel and supply a username and password for a domain account (just the plain username, not *MYDOMAIN\user* or *user@mydomain.local* or anything like that)
-* Hit the *Test credentials* button and check that you get a *TGT successfully acquired* response
-* Kerberos authentication should now be operational for hosts in the specified domain
-
-### Important: Delegation ###
-Some applications use Kerberos delegation on the server side to forward the client's identity to other servers (but there isn't an easy way to determine from the client side if this is in use).
-
-Berserko does support this, but there is a catch. Delegation only works if the user has a *forwardable* TGT (ticket-granting ticket). The Java implementation of Kerberos doesn't provide a way to programatically specify that a forwardable ticket should be acquired. This can only be done by adding an appropriate entry to the *krb5.conf* configuration file. 
-
-So, for delegation to work, you need to create (or edit) the *krb5.conf* file. 
-* the first place that will be searched for this file is the `\lib\security` subdirectory of the JRE that is running Burp
-* On Windows, you can also put it at `C:\WINDOWS\krb5.ini` (note the *ini* extension here rather than *conf*)
-* On Linux, you can also put it at `/etc/krb5.conf`
-
-More information in the *Locating the krb5.conf Configuration File* section of [this page](https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/tutorials/KerberosReq.html).
-
-Your *krb5.conf* file only needs to contain the two lines below. Obviously if you are editing an existing file rather than creating a new one (unlikely on Windows, possible on Linux) then you need to be a little bit careful, but simply adding the *forwardable = true* line to the *[libdefaults]* section (if it's not already there) will do the job.
-
-    [libdefaults]
-	    forwardable = true
-
-If you want to know whether this has been successful, note that Berserko will tell you whether or not it acquired a forwardable TGT when you use the *Test credentials* button.
-		
-Future versions of Berserko will hopefully have better support for all of this.
+* Go the *Berserko* tab and tick the *Do Kerberos authentication* checkbox.
+* Click the *Change* button in the *Domain Settings* panel and supply the DNS name of the domain (**not** the NETBIOS name) and the hostname (or IP address) of a KDC (domain controller).
+* Hit the *Test domain settings* button and check that you get a *Successfully contacted Kerberos service* response.
+* Click the *Change* button in the *Domain Credentials* panel and supply a username and password for a domain account (just the plain username, not *MYDOMAIN\user* or *user@mydomain.local* or anything like that).
+* Enable Kerberos delegation by letting Berserko create a *krb5.conf* file for you. Click the *Create krb5.conf file* button in the *Delegation* panel and choose a suitable location where the file can be created. Anywhere will do. You don't want to overwrite any existing system-level *krb5.conf* file. Say yes when Berserko asks if you want to set this as the *krb5.conf* file. It sucks that we have to do this (create a file) but it's not Berserko's fault and not Burp's fault - it's a limitation of the Java Kerberos APIs. For more information see the notes on Delegation below.
+* Hit the *Test credentials* button and check that you get a *"TGT successfully acquired"* response. Hopefully it will also say *"TGT is forwardable so delegation should work"*.
+* Kerberos authentication should now be operational for hosts in the specified domain.
 
 ### Settings ###
 There are various controls on the *Berserko* tab in Burp.
@@ -60,7 +40,7 @@ The *KDC Host* should be the hostname (or IP address) of a Kerberos KDC (Key Dis
 
 Having supplied the *Domain DNS Name*, you can use the *Auto* button to try to automatically locate a KDC. It does this by sending a DNS SRV query for the Kerberos service. If one of your DNS servers is a domain controller for the correct domain, this should work. If not, it won't. 
 
-When the *Domain DNS Name* and *KDC Host* have been entered, use the *Test domain settings* button to test connectivity. All being well, you will get get a *Successfully contacted Kerberos service* response. 
+When the *Domain DNS Name* and *KDC Host* have been entered, use the *Test domain settings* button to test connectivity. All being well, you will get a *Successfully contacted Kerberos service* response. 
 
 #### Domain Credentials ####
 Specify the **Username** and **Password** for a domain account using the controls in this section. The textboxes can't be edited directly; you have to use the 'Change' button to modify them.
@@ -83,12 +63,35 @@ If selected, the *Do not perform Kerberos authentication to servers which suppor
 
 The *Plain hostnames considered part of domain* option, if selected, means that Kerberos authentication will be attempted against hosts which are specified by 'plain hostnames' (i.e. hostnames that are not qualified with the domain). The main reason you might want to disable this would be if your machine was joined to a different domain from the one being authenticated against using Berserko (in which case, plain hostnames probably refer to hosts in the domain to which you are joined).
 
+### Delegation ###
+Some applications use Kerberos delegation on the server side to forward the client's identity to other servers (but there isn't an easy way to determine from the client side if this is in use).
+
+Berserko does support this, but there is a catch. Delegation only works if the user has a *forwardable* TGT (ticket-granting ticket). The Java implementation of Kerberos sadly doesn't provide a way to programmatically specify that a forwardable ticket should be acquired. This can only be done by adding an appropriate entry to the *krb5.conf* configuration file. 
+
+So, for delegation to work, Berserko has to be pointed at a suitable *krb5.conf* file, and there are two possible approaches here. 
+
+The easiest thing to do, and the **recommended approach** is to use the *Create krb5.conf file* button. This will create a suitable file for you at a location of your choice. You can put it in a temporary directory, or your project directory, or wherever. But the same file can be reused indefinitely, so it might make sense to put it somewhere more permanent. The *Change* button lets you select a different file to be used.
+
+If you're interested, the *krb5.conf* file which is created is very simple, and will have the following contents:
+
+    [libdefaults]
+	    forwardable = true
+		
+Alternatively, you could use the *Change* button to point at an existing *krb5.conf* file on the system. The only reason you might want to do this would be if there were other important Kerberos settings in this file that you wanted to be picked up by Berserko (which should work OK in theory, but has not been tested in practice). Note that the default location for this file on Linux is `/etc/krb5.conf` - other operating systems are less likely to have one. If you are pointing to an existing *krb5.conf* file, make sure you edit it to enable forwarding - add `forwardable = true` to the `[libdefaults]` section (or individually for each realm). But be careful. Asking Berserko to create the file for you is going to be the better option 99% of the time.
+
+If you want to know whether your delegation configuration is successful, use the *Check current config* button. This will tell you whether the *krb5.conf* file has been located, and whether the *forwardable* setting is correct. Note also that Berserko will tell you whether or not it successfully acquired a forwardable TGT when you use the *Test credentials* button. 
+
+It's a good idea to make sure that you have a forwardable ticket *before* you start to use an application. It seems that IIS can cache the authentication status of a user on the server side in such a way that switching from a non-forwardable ticket to a forwardable one won't work.
+
 #### Logging ####
 The *Alert Level* and *Logging Level* can be configured here, to either NONE, NORMAL or VERBOSE.
 
 *Alert Level* controls the amount of information sent to Burp's *Alerts* tab.
 
 *Logging Level* controls the amount of information sent to Berserko's standard output (this can be viewed on the *Extender* tab). Note that increasing the *Logging Level* to VERBOSE will cause more information to be provided about any errors or exceptions that might occur.
+
+### Bugs ###
+* If the UI for the Berserko tab doesn't display properly, try using Burp's Metal theme.
 
 ### Limitations ###
 * Berserko won't play particularly nicely with Burp's own *Platform Authentication* feature. It's OK to have Platform Authentication enabled, but don't configure it for any of the hosts that require Kerberos (rather than NTLM) authentication. 
