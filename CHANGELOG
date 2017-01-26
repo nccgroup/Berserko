@@ -1,3 +1,6 @@
+27 January 2017     - v0.9 (beta)
+* Allow krb5.conf files to be specified within the GUI (and created)
+
 01 September 2016	- v0.81 (alpha)
 * Added support for delegation (using ExtendedGSSContext.requestDelegPolicy), although this requires krb5.conf to be set up correctly
 * Request new TGT after expiry

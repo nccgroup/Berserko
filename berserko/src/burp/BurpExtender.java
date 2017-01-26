@@ -92,7 +92,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private boolean gotTGT = false;
 
 	private final String extensionName = "Berserko";
-	private final String versionString = "0.81 (alpha)";
+	private final String versionString = "0.9 (beta)";
 	private final String tabName = "Berserko";
 
 	private List<String> workingSet = null;
