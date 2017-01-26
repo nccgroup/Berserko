@@ -1,4 +1,12 @@
 # Berserko - Kerberos authentication for Burp Suite
+Released as open source by NCC Group Plc - http://www.nccgroup.trust/
+
+Developed by Richard Turnbull, richard [dot] turnbull [at] nccgroup [dot] trust
+
+http://www.github.com/nccgroup/Berserko
+
+Released under AGPL, see LICENSE for more information
+
 ### Introduction ###
 Berserko is a Burp extension to add support for performing Kerberos authentication. This is useful for testing in a Windows domain when NTLM authentication is not supported (Burp already handles NTLM). Berserko does not require that the machine running Burp be domain-joined (or even that it is running Windows). 
 

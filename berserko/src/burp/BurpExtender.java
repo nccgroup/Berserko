@@ -1,3 +1,11 @@
+//Released as open source by NCC Group Plc - http://www.nccgroup.trust/
+//
+//Developed by Richard Turnbull, Richard [dot] Turnbull [at] nccgroup [dot] trust
+//
+//http://www.github.com/nccgroup/Berserko
+//
+//Released under AGPL see LICENSE for more information
+
 package burp;
 
 import java.awt.Component;
