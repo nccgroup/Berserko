@@ -2305,6 +2305,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 										.format("Could not write to file %s\n",
 												f), "Error",
 										JOptionPane.ERROR_MESSAGE);
+								return;
 							}
 
 							int n = JOptionPane
