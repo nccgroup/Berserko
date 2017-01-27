@@ -68,6 +68,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
@@ -1507,6 +1508,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 	// ================== GUI code starts here ========================================
 
+	JScrollPane scroll;
 	JPanel mainPanel;
 	JCheckBox masterSwitchCheckBox;
 	JLabel versionLabel;
@@ -1526,6 +1528,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JButton pingKDCButton;
 	JButton domainDnsNameHelpButton;
 	JButton kdcHelpButton;
+	JButton domainControlsHelpButton;
 	// JButton domainDnsNameAutoButton;
 	JButton kdcAutoButton;
 	JTextField domainStatusTextField;
@@ -1537,6 +1540,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JButton changeCredentialsButton;
 	JButton testCredentialsButton;
 	JCheckBox savePasswordCheckBox;
+	JButton passwordHelpButton;
+	JButton credentialControlsHelpButton;
+	JButton savePasswordHelpButton;
 	JTextField credentialsStatusTextField;
 	JLabel alertLevelLabel;
 	JLabel loggingLevelLabel;
@@ -1561,25 +1567,33 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JLabel krb5FileLabel;
 	JButton changeKrb5FileButton;
 	JButton checkCurrentKrb5ConfigHelpButton;
-	JButton createKrb5HelpButton;
+	JButton delegationControlsHelpButton;
 	JButton krb5FileHelpButton;
 
 	private final String domainDnsNameHelpString = "DNS name of the domain to authenticate against - not the NETBIOS name.";
-	private final String kdcHelpString = "Hostname of a KDC (domain controller) for this domain.\n\n\"Auto\" button will do a DNS SRV lookup to try to find a KDC for the given domain.";
+	private final String kdcHelpString = "Hostname of a KDC (domain controller) for this domain.";
 	private final String usernameHelpString = "Username for a domain account. Just the plain username, not DOMAIN\\username or username@DOMAIN.COM or anything like that.";
-	private final String kdcTestSuccessString = "Successfully contacted Kerberos service";
-	private final String credentialsTestSuccessString = "TGT successfully acquired";
-	private final String forwardableTgtString = "TGT is forwardable so delegation should work";
-	private final String notForwardableTgtString = "TGT is not forwardable so delegation will not work - you should use the \"Create local krb5.conf file\" button to fix this";
-	private final String alertLevelHelpString = "Controls level of logging performed to Burp's Alerts tab";
-	private final String loggingLevelHelpString = "Controls level of logging performed to extension's standard output";
+	private final String kdcTestSuccessString = "Successfully contacted Kerberos service.";
+	private final String credentialsTestSuccessString = "TGT successfully acquired.";
+	private final String forwardableTgtString = "TGT is forwardable so delegation should work.";
+	private final String notForwardableTgtString = "TGT is not forwardable so delegation will not work - you should use the \"Create local krb5.conf file\" button to fix this.";
+	private final String alertLevelHelpString = "Controls level of logging performed to Burp's Alerts tab.";
+	private final String loggingLevelHelpString = "Controls level of logging performed to extension's standard output.";
 	private final String authStrategyHelpString = "There are three possible approaches here:\n\nReactive: when a 401 response is received from the server, add an appropriate Kerberos authentication header and resend the request. This is what Fiddler does.\nProactive: for hosts which are in scope for Kerberos authentication, add the Kerberos authentication header to outgoing requests (i.e. don't wait to get a 401).\nProactive after 401: use the reactive strategy for the first Kerberos authentication against a particular host, then if it was successful, move to proactive.\n\nThe Reactive approach is perhaps the most \"correct\", but is slower (requires an extra HTTP round trip to the server).\nThe Proactive approach is faster.\nThe Proactive after 401 approach is maybe a good compromise.";
 	private final String ignoreNTLMServersHelpString = "If this is selected, Kerberos authentication will not be performed against hosts which also support NTLM (as evidenced by a WWW-Authenticate: NTLM response header).\n\nThe purpose of selecting this would be to, for example, use Burp's existing NTLM authentication capability for these hosts.";
 	private final String includePlainhostnamesHelpString = "If this is selected, Kerberos authentication will be attempted against hosts which are specified by \"plain hostnames\", i.e. hostnames that are not qualified with the domain.\n\nThe only reason you might want this would be if your machine was joined to a different domain from the one being authenticated against using this extension.";
+	private final String checkCurrentKrb5ConfigHelpString = "Check if the specified krb5.conf file sets forwarding enabled.";
+	private final String delegationControlsHelpString = "\"Change...\" lets you specify the location of the krb5.conf file.\n\n\"Create krb5.conf file\" creates a new minimal krb5.conf file, which will enable delegation, at a location of your choice on the file system.\n\n\"Check current config\" will verify that the specified krb5.conf file exists, and has delegation enabled.";
+	private final String krb5FileHelpString = "The krb5.conf file which will be used (and controls whether delegation is enabled).";
+	private final String domainControlsHelpString = "\"Change...\" lets you change the Domain DNS Name and KDC Host.\n\n\"Autolocate KDC\" will do a DNS SRV lookup to try to find a KDC for the given domain.\n\n\"Test domain settings\" will check that the Kerberos service can be contacted successfully.";
+	private final String credentialControlsHelpString = "\"Change...\" lets you change the Username and Password.\n\n\"Test credentials\" will check that a ticket-granting ticket (TGT) can be acquired using these credentials.";
+	private final String savePasswordHelpString = "Controls whether the password will be saved in Burp's settings file.";
+	private final String passwordHelpString = "The domain password for the specified user.";
+
 
 	@Override
 	public Component getUiComponent() {
-		return mainPanel;
+		return scroll;
 	}
 
 	@Override
@@ -1594,6 +1608,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				// Create our initial UI components
 				mainPanel = new JPanel();
 				mainPanel.setLayout(new GridBagLayout());
+				scroll = new JScrollPane(mainPanel);
+				scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+				scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
 				GridBagConstraints gbc = new GridBagConstraints();
 				gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -1620,8 +1637,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				pingKDCButton = new JButton("Test domain settings");
 				domainDnsNameHelpButton = new JButton("?");
 				kdcHelpButton = new JButton("?");
-				// domainDnsNameAutoButton = new JButton( "Auto");
-				kdcAutoButton = new JButton("Auto");
+				domainControlsHelpButton = new JButton("?");
+				kdcAutoButton = new JButton("Autolocate KDC");
 
 				usernameLabel = new JLabel("Username               ");
 				passwordLabel = new JLabel("Password               ");
@@ -1636,6 +1653,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 						"Save password in Burp config?");
 				credentialsStatusTextField = new JTextField();
 				credentialsStatusTextField.setEditable(false);
+				credentialControlsHelpButton = new JButton("?");
+				savePasswordHelpButton = new JButton("?");
+				passwordHelpButton = new JButton("?");
 
 				alertLevelLabel = new JLabel("Alert Level            ");
 				loggingLevelLabel = new JLabel("Logging Level        ");
@@ -1666,12 +1686,12 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				checkDelegationConfigButton = new JButton(
 						"Check current config");
 				createKrb5ConfButton = new JButton("Create krb5.conf file");
-				krb5FileLabel = new JLabel("krb5.conf file         ");
+				krb5FileLabel = new JLabel("krb5.conf file           ");
 				krb5FileTextField = new JTextField("");
 				krb5FileTextField.setEditable(false);
-				changeKrb5FileButton = new JButton("Change");
+				changeKrb5FileButton = new JButton("Change...");
 				checkCurrentKrb5ConfigHelpButton = new JButton("?");
-				createKrb5HelpButton = new JButton("?");
+				delegationControlsHelpButton = new JButton("?");
 				krb5FileHelpButton = new JButton("?");
 
 				credsPanel = new JPanel(new GridBagLayout());
@@ -1746,7 +1766,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				callbacks.customizeUiComponent(changeKrb5FileButton);
 				callbacks
 						.customizeUiComponent(checkCurrentKrb5ConfigHelpButton);
-				callbacks.customizeUiComponent(createKrb5HelpButton);
+				callbacks.customizeUiComponent(delegationControlsHelpButton);
 				callbacks.customizeUiComponent(krb5FileHelpButton);
 
 				// DOMAIN SETTINGS PANEL LAYOUT
@@ -1768,21 +1788,21 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
 				gbc.gridy = 0;
-				gbc.gridwidth = 3;
+				gbc.gridwidth = 5;
 				domainPanel.add(domainDnsNameTextField, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
 				gbc.gridy = 1;
-				gbc.gridwidth = 3;
+				gbc.gridwidth = 5;
 				domainPanel.add(kdcTextField, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 1;
-				gbc.gridy = 3;
-				gbc.gridwidth = 3;
+				gbc.gridx = 4;
+				gbc.gridy = 2;
+				gbc.gridwidth = 2;
 				domainPanel.add(domainStatusTextField, gbc);
 				gbc.gridwidth = 1;
 				gbc.fill = GridBagConstraints.NONE;
@@ -1794,30 +1814,31 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 2;
+				gbc.gridx = 3;
 				gbc.gridy = 2;
 				domainPanel.add(pingKDCButton, gbc);
-				/*
-				 * gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0;
-				 * gbc.weighty = 0.0; gbc.gridx = 4; gbc.gridy = 0;
-				 * domainPanel.add( domainDnsNameAutoButton, gbc);
-				 */
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 4;
-				gbc.gridy = 1;
+				gbc.gridx = 2;
+				gbc.gridy = 2;
 				domainPanel.add(kdcAutoButton, gbc);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 5;
+				gbc.gridx = 6;
 				gbc.gridy = 0;
 				domainPanel.add(domainDnsNameHelpButton, gbc);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 5;
+				gbc.gridx = 6;
+				gbc.gridy = 2;
+				domainPanel.add(domainControlsHelpButton, gbc);
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 6;
 				gbc.gridy = 1;
 				domainPanel.add(kdcHelpButton, gbc);
 
@@ -1840,21 +1861,22 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
 				gbc.gridy = 0;
-				gbc.gridwidth = 3;
+				gbc.gridwidth = 4;
 				credsPanel.add(usernameTextField, gbc);
+				gbc.gridwidth = 1;
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
 				gbc.gridy = 1;
-				gbc.gridwidth = 3;
+				gbc.gridwidth = 4;
 				credsPanel.add(passwordField, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 1;
-				gbc.gridy = 3;
-				gbc.gridwidth = 3;
+				gbc.gridx = 3;
+				gbc.gridy = 2;
+				gbc.gridwidth = 2;
 				credsPanel.add(credentialsStatusTextField, gbc);
 				gbc.gridwidth = 1;
 				gbc.fill = GridBagConstraints.NONE;
@@ -1872,54 +1894,87 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 4;
+				gbc.gridx = 5;
 				gbc.gridy = 0;
 				credsPanel.add(usernameHelpButton, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
-				gbc.gridy = 4;
-				gbc.gridwidth = 3;
+				gbc.gridy = 3;
+				gbc.gridwidth = 4;
 				credsPanel.add(savePasswordCheckBox, gbc);
 				gbc.gridwidth = 1;
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 5;
+				gbc.gridy = 1;
+				credsPanel.add(passwordHelpButton, gbc);
+				gbc.gridwidth = 1;
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 5;
+				gbc.gridy = 2;
+				credsPanel.add(credentialControlsHelpButton, gbc);
+				gbc.gridwidth = 1;
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 5;
+				gbc.gridy = 3;
+				credsPanel.add(savePasswordHelpButton, gbc);
 
 				// DELEGATION PANEL LAYOUT
+
+
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 0;
 				gbc.gridy = 0;
-				delegationPanel.add(checkDelegationConfigButton, gbc);
-				gbc.insets = new Insets(5, 5, 5, 5);
-				gbc.fill = GridBagConstraints.NONE;
-				gbc.weightx = 0.0;
-				gbc.weighty = 0.0;
-				gbc.gridx = 0;
-				gbc.gridy = 1;
-				delegationPanel.add(createKrb5ConfButton, gbc);
-				gbc.insets = new Insets(5, 5, 5, 5);
-				gbc.fill = GridBagConstraints.NONE;
-				gbc.weightx = 0.0;
-				gbc.weighty = 0.0;
-				gbc.gridx = 0;
-				gbc.gridy = 2;
 				delegationPanel.add(krb5FileLabel, gbc);
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
-				gbc.gridy = 2;
+				gbc.gridy = 0;
+				gbc.gridwidth = 4;
 				delegationPanel.add(krb5FileTextField, gbc);
+				gbc.gridwidth = 1;
 				gbc.insets = new Insets(5, 5, 5, 5);
-				gbc.fill = GridBagConstraints.HORIZONTAL;
+				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 4;
-				gbc.gridy = 2;
+				gbc.gridx = 5;
+				gbc.gridy = 0;
+				delegationPanel.add(krb5FileHelpButton, gbc);
+				gbc.insets = new Insets(5, 5, 5, 5);
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 1;
+				gbc.gridy = 1;
 				delegationPanel.add(changeKrb5FileButton, gbc);
+				gbc.insets = new Insets(5, 5, 5, 5);
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 2;
+				gbc.gridy = 1;
+				delegationPanel.add(createKrb5ConfButton, gbc);
+				gbc.insets = new Insets(5, 5, 5, 5);
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 3;
+				gbc.gridy = 1;
+				delegationPanel.add(checkDelegationConfigButton, gbc);
+
+				/*
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 0.0;
@@ -1927,20 +1982,14 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.gridx = 5;
 				gbc.gridy = 0;
 				delegationPanel.add(checkCurrentKrb5ConfigHelpButton, gbc);
+				*/
 				gbc.insets = new Insets(5, 5, 5, 5);
-				gbc.fill = GridBagConstraints.HORIZONTAL;
+				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 5;
 				gbc.gridy = 1;
-				delegationPanel.add(createKrb5HelpButton, gbc);
-				gbc.insets = new Insets(5, 5, 5, 5);
-				gbc.fill = GridBagConstraints.HORIZONTAL;
-				gbc.weightx = 0.0;
-				gbc.weighty = 0.0;
-				gbc.gridx = 5;
-				gbc.gridy = 2;
-				delegationPanel.add(krb5FileHelpButton, gbc);
+				delegationPanel.add(delegationControlsHelpButton, gbc);
 
 				// LOGGING PANEL LAYOUT
 				gbc.insets = new Insets(5, 5, 5, 5);
@@ -2010,7 +2059,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 1;
+				gbc.gridx = 2;
 				gbc.gridy = 0;
 				authenticationStrategyPanel.add(authStrategyHelpButton, gbc);
 
@@ -2084,19 +2133,19 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.weighty = 0.1;
 				gbc.gridx = 0;
 				gbc.gridy = 3;
-				mainPanel.add(authenticationStrategyPanel, gbc);
+				mainPanel.add(delegationPanel, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.1;
 				gbc.gridx = 0;
 				gbc.gridy = 4;
-				mainPanel.add(optionsPanel, gbc);
+				mainPanel.add(authenticationStrategyPanel, gbc);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.1;
 				gbc.gridx = 0;
 				gbc.gridy = 5;
-				mainPanel.add(delegationPanel, gbc);
+				mainPanel.add(optionsPanel, gbc);
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.1;
 				gbc.gridx = 0;
@@ -2336,11 +2385,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 						.addActionListener(new HelpButtonActionListener(
 								ignoreNTLMServersHelpString));
 				checkCurrentKrb5ConfigHelpButton
-						.addActionListener(new HelpButtonActionListener("Check if the specified krb5.conf file sets forwarding enabled"));
-				createKrb5HelpButton
-						.addActionListener(new HelpButtonActionListener("Create a new krb5.conf file which enables forwarding (and doesn't do anything else)"));
+						.addActionListener(new HelpButtonActionListener(checkCurrentKrb5ConfigHelpString));
+				delegationControlsHelpButton
+						.addActionListener(new HelpButtonActionListener(delegationControlsHelpString));
 				krb5FileHelpButton
-						.addActionListener(new HelpButtonActionListener("Specify the krb5.conf file to be used"));
+						.addActionListener(new HelpButtonActionListener(krb5FileHelpString));
+				domainControlsHelpButton.addActionListener( new HelpButtonActionListener(domainControlsHelpString));
+				credentialControlsHelpButton.addActionListener( new HelpButtonActionListener(credentialControlsHelpString));
+				savePasswordHelpButton.addActionListener( new HelpButtonActionListener(savePasswordHelpString));
+				passwordHelpButton.addActionListener( new HelpButtonActionListener(passwordHelpString));
+				
 
 				initialiseGUIFromConfig();
 
@@ -2557,8 +2611,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		newUsernameTextField.setText(username);
 		JPasswordField newPasswordField = new JPasswordField();
 		newPasswordField.setText(password);
-		final JComponent[] inputs = new JComponent[] { new JLabel("Username"),
-				newUsernameTextField, new JLabel("Password"), newPasswordField, };
+		final JComponent[] inputs = new JComponent[] { new JLabel("Username "),
+				newUsernameTextField, new JLabel("Password "), newPasswordField, };
 		JOptionPane.showMessageDialog(null, inputs, "Change credentials",
 				JOptionPane.PLAIN_MESSAGE);
 
