@@ -17,7 +17,7 @@ The only existing solution that we are currently aware of for testing Kerberos a
 * Tested on Windows and Linux (Kali)
 
 ### Installation ###
-Get the latest Berserko jar file from the `berserko\jar` folder in this repository, or a numbered release from the `berserko\releases` folder
+Get the latest Berserko jar file from the Releases tab, or from the `berserko\releases` folder
 
 Go to the *Extender* tab in Burp, select *Add*, make sure *Java* is selected as the *Extension type*, and then point it at the jar file. All being well, the *Berserko* tab should be added to the Burp UI.
 
