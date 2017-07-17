@@ -118,8 +118,12 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private String password;
 
 	private boolean masterSwitch;
+	
 	private boolean plainhostExpand;
 	private boolean ignoreNTLMServers;
+	private boolean everythingInScope;
+	private boolean wholeDomainInScope;
+	private List<String> hostsInScope;
 
 	private boolean savePassword;
 
@@ -217,6 +221,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		alertLevel = logLevel = 1;
 		plainhostExpand = true;
 		ignoreNTLMServers = false;
+		everythingInScope = false;
+		wholeDomainInScope = true;
+		hostsInScope = new ArrayList<String>();
 		authStrategy = AuthStrategy.REACTIVE_401;
 		krb5File = "";
 		System.setProperty("java.security.krb5.conf", "");
@@ -229,6 +236,37 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private String loadSetting(String a) {
 		return callbacks.loadExtensionSetting(extensionName + "_" + a);
 	}
+	
+	private List<String> hostsListFromString( String s)
+	{
+		List<String> hosts = new ArrayList<String>();
+		
+		String[] tokens = s.split( ";");
+		
+		for( String t : tokens)
+		{
+			hosts.add( t);
+		}
+		
+		return hosts;
+	}
+	
+	private String hostsStringFromList( List<String> hostsList)
+	{
+		String s = "";
+		
+		for(int ii=0; ii<hostsList.size() - 1; ii++)
+		{
+			s += hostsList.get( ii) + ";";
+		}
+		
+		if( hostsList.size() > 0)
+		{
+			s += hostsList.get( hostsList.size() - 1);
+		}
+		
+		return s;
+	}
 
 	private void logConfig() {
 		log(1, "Domain DNS Name     : " + domainDnsName);
@@ -236,6 +274,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		log(1, "Username            : " + username);
 		log(1, "Password            : " + (password.isEmpty() ? "" : "****"));
 		log(1, "Save password       : " + String.valueOf(savePassword));
+		log(1, "Everything in scope : " + String.valueOf(everythingInScope));
+		log(1, "Domain in scope     : " + String.valueOf(wholeDomainInScope));
+		log(1, "Hosts in scope      : " + hostsStringFromList( hostsInScope));
 		log(1, "Include plainhosts  : " + String.valueOf(plainhostExpand));
 		log(1, "Ignore NTLM servers : " + String.valueOf(ignoreNTLMServers));
 		log(1, "Alert level         : " + String.valueOf(alertLevel));
@@ -254,6 +295,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			saveSetting("password", null);
 		}
 		saveSetting("plainhost_expand", String.valueOf(plainhostExpand));
+		saveSetting("everything_in_scope", String.valueOf( everythingInScope));
+		saveSetting("domain_in_scope", String.valueOf( wholeDomainInScope));
+		saveSetting("hosts_in_scope", hostsStringFromList( hostsInScope));
 		saveSetting("ignore_ntlm_servers", String.valueOf(ignoreNTLMServers));
 		saveSetting("alert_level", String.valueOf(alertLevel));
 		saveSetting("log_level", String.valueOf(logLevel));
@@ -287,6 +331,20 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				: false;
 		ignoreNTLMServers = loadSetting("ignore_ntlm_servers").equals("true") ? true
 				: false;
+		if( loadSetting( "everything_in_scope") != null)
+		{
+			everythingInScope = loadSetting("everything_in_scope").equals("true") ? true
+					: false;
+		}
+		if( loadSetting( "domain_in_scope") != null)
+		{
+			wholeDomainInScope = loadSetting("domain_in_scope").equals("true") ? true
+					: false;
+		}	
+		if( loadSetting( "hosts_in_scope") != null)
+		{
+			hostsInScope = hostsListFromString(loadSetting("hosts_in_scope"));
+		}			
 		alertLevel = Integer.parseInt(loadSetting("alert_level"));
 		logLevel = Integer.parseInt(loadSetting("log_level"));
 		authStrategy = AuthStrategy.valueOf(loadSetting("auth_strategy"));
