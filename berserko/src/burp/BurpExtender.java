@@ -1567,11 +1567,14 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 	// ================== GUI code starts here ========================================
 
+	// header
 	JScrollPane scroll;
 	JPanel mainPanel;
 	JCheckBox masterSwitchCheckBox;
 	JLabel versionLabel;
 	JButton restoreDefaultsButton;
+	
+	// panels
 	JPanel domainPanel;
 	JPanel credsPanel;
 	JPanel authenticationStrategyPanel;
@@ -1579,6 +1582,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JPanel loggingPanel;
 	JPanel delegationPanel;
 	JPanel dummyPanel;
+	
+	// domain settings
 	JLabel domainDnsLabel;
 	JLabel kdcLabel;
 	JTextField domainDnsNameTextField;
@@ -1591,6 +1596,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	// JButton domainDnsNameAutoButton;
 	JButton kdcAutoButton;
 	JTextField domainStatusTextField;
+	
+	// credentials
 	JLabel usernameLabel;
 	JLabel passwordLabel;
 	JTextField usernameTextField;
@@ -1603,23 +1610,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JButton credentialControlsHelpButton;
 	JButton savePasswordHelpButton;
 	JTextField credentialsStatusTextField;
-	JLabel alertLevelLabel;
-	JLabel loggingLevelLabel;
-	JComboBox<String> alertLevelComboBox;
-	JComboBox<String> loggingLevelComboBox;
-	JButton alertLevelHelpButton;
-	JButton loggingLevelHelpButton;
-
-	JRadioButton proactiveButton;
-	JRadioButton proactiveAfter401Button;
-	JRadioButton reactiveButton;
-	ButtonGroup authStrategyGroup;
-	JCheckBox ignoreNTLMServersCheckBox;
-	JCheckBox includePlainhostnamesCheckBox;
-	JButton authStrategyHelpButton;
-	JButton ignoreNTLMServersHelpButton;
-	JButton includePlainhostnamesHelpButton;
-
+	
+	// delegation
 	JButton checkDelegationConfigButton;
 	JButton createKrb5ConfButton;
 	JTextField krb5FileTextField;
@@ -1628,6 +1620,27 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JButton checkCurrentKrb5ConfigHelpButton;
 	JButton delegationControlsHelpButton;
 	JButton krb5FileHelpButton;
+	
+	// strategy
+	JRadioButton proactiveButton;
+	JRadioButton proactiveAfter401Button;
+	JRadioButton reactiveButton;
+	ButtonGroup authStrategyGroup;
+	JButton authStrategyHelpButton;
+	
+	// scope
+	JCheckBox ignoreNTLMServersCheckBox;
+	JCheckBox includePlainhostnamesCheckBox;
+	JButton ignoreNTLMServersHelpButton;
+	JButton includePlainhostnamesHelpButton;
+	
+	// logging
+	JLabel alertLevelLabel;
+	JLabel loggingLevelLabel;
+	JComboBox<String> alertLevelComboBox;
+	JComboBox<String> loggingLevelComboBox;
+	JButton alertLevelHelpButton;
+	JButton loggingLevelHelpButton;
 
 	private final String domainDnsNameHelpString = "DNS name of the domain to authenticate against - not the NETBIOS name.";
 	private final String kdcHelpString = "Hostname of a KDC (domain controller) for this domain.";
