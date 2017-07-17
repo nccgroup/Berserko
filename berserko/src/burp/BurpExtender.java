@@ -1578,7 +1578,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JPanel domainPanel;
 	JPanel credsPanel;
 	JPanel authenticationStrategyPanel;
-	JPanel optionsPanel;
+	JPanel scopePanel;
 	JPanel loggingPanel;
 	JPanel delegationPanel;
 	JPanel dummyPanel;
@@ -1642,27 +1642,38 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JButton alertLevelHelpButton;
 	JButton loggingLevelHelpButton;
 
+	// domain settings
 	private final String domainDnsNameHelpString = "DNS name of the domain to authenticate against - not the NETBIOS name.";
 	private final String kdcHelpString = "Hostname of a KDC (domain controller) for this domain.";
-	private final String usernameHelpString = "Username for a domain account. Just the plain username, not DOMAIN\\username or username@DOMAIN.COM or anything like that.";
 	private final String kdcTestSuccessString = "Successfully contacted Kerberos service.";
-	private final String credentialsTestSuccessString = "TGT successfully acquired.";
-	private final String forwardableTgtString = "TGT is forwardable so delegation should work.";
-	private final String notForwardableTgtString = "TGT is not forwardable so delegation will not work - you should use the \"Create local krb5.conf file\" button to fix this.";
-	private final String alertLevelHelpString = "Controls level of logging performed to Burp's Alerts tab.";
-	private final String loggingLevelHelpString = "Controls level of logging performed to extension's standard output.";
-	private final String authStrategyHelpString = "There are three possible approaches here:\n\nReactive: when a 401 response is received from the server, add an appropriate Kerberos authentication header and resend the request. This is what Fiddler does.\nProactive: for hosts which are in scope for Kerberos authentication, add the Kerberos authentication header to outgoing requests (i.e. don't wait to get a 401).\nProactive after 401: use the reactive strategy for the first Kerberos authentication against a particular host, then if it was successful, move to proactive.\n\nThe Reactive approach is perhaps the most \"correct\", but is slower (requires an extra HTTP round trip to the server).\nThe Proactive approach is faster.\nThe Proactive after 401 approach is usually a good compromise.";
-	private final String ignoreNTLMServersHelpString = "If this is selected, Kerberos authentication will not be performed against hosts which also support NTLM (as evidenced by a WWW-Authenticate: NTLM response header).\n\nThe purpose of selecting this would be to, for example, use Burp's existing NTLM authentication capability for these hosts.";
-	private final String includePlainhostnamesHelpString = "If this is selected, Kerberos authentication will be attempted against hosts which are specified by \"plain hostnames\", i.e. hostnames that are not qualified with the domain.\n\nThe only reason you might want this would be if your machine was joined to a different domain from the one being authenticated against using this extension.";
-	private final String checkCurrentKrb5ConfigHelpString = "Check if the specified krb5.conf file sets forwarding enabled.";
-	private final String delegationControlsHelpString = "\"Change...\" lets you specify the location of the krb5.conf file.\n\n\"Create krb5.conf file\" creates a new minimal krb5.conf file, which will enable delegation, at a location of your choice on the file system.\n\n\"Check current config\" will verify that the specified krb5.conf file exists, and has delegation enabled.";
-	private final String krb5FileHelpString = "The krb5.conf file which will be used (and controls whether delegation is enabled).";
 	private final String domainControlsHelpString = "\"Change...\" lets you change the Domain DNS Name and KDC Host.\n\n\"Autolocate KDC\" will do a DNS SRV lookup to try to find a KDC for the given domain.\n\n\"Test domain settings\" will check that the Kerberos service can be contacted successfully.";
-	private final String credentialControlsHelpString = "\"Change...\" lets you change the Username and Password.\n\n\"Test credentials\" will check that a ticket-granting ticket (TGT) can be acquired using these credentials.";
+	
+	// credentials
+	private final String usernameHelpString = "Username for a domain account. Just the plain username, not DOMAIN\\username or username@DOMAIN.COM or anything like that.";
+	private final String credentialsTestSuccessString = "TGT successfully acquired.";
 	private final String savePasswordHelpString = "Controls whether the password will be saved in Burp's settings file.";
 	private final String passwordHelpString = "The domain password for the specified user.";
-
-
+	
+	private final String credentialControlsHelpString = "\"Change...\" lets you change the Username and Password.\n\n\"Test credentials\" will check that a ticket-granting ticket (TGT) can be acquired using these credentials.";
+	
+	// delegation
+	private final String forwardableTgtString = "TGT is forwardable so delegation should work.";
+	private final String notForwardableTgtString = "TGT is not forwardable so delegation will not work - you should use the \"Create local krb5.conf file\" button to fix this.";
+	private final String krb5FileHelpString = "The krb5.conf file which will be used (and controls whether delegation is enabled).";
+	private final String checkCurrentKrb5ConfigHelpString = "Check if the specified krb5.conf file sets forwarding enabled.";
+	private final String delegationControlsHelpString = "\"Change...\" lets you specify the location of the krb5.conf file.\n\n\"Create krb5.conf file\" creates a new minimal krb5.conf file, which will enable delegation, at a location of your choice on the file system.\n\n\"Check current config\" will verify that the specified krb5.conf file exists, and has delegation enabled.";
+	
+	// strategy
+	private final String authStrategyHelpString = "There are three possible approaches here:\n\nReactive: when a 401 response is received from the server, add an appropriate Kerberos authentication header and resend the request. This is what Fiddler does.\nProactive: for hosts which are in scope for Kerberos authentication, add the Kerberos authentication header to outgoing requests (i.e. don't wait to get a 401).\nProactive after 401: use the reactive strategy for the first Kerberos authentication against a particular host, then if it was successful, move to proactive.\n\nThe Reactive approach is perhaps the most \"correct\", but is slower (requires an extra HTTP round trip to the server).\nThe Proactive approach is faster.\nThe Proactive after 401 approach is usually a good compromise.";
+	
+	// scope
+	private final String ignoreNTLMServersHelpString = "If this is selected, Kerberos authentication will not be performed against hosts which also support NTLM (as evidenced by a WWW-Authenticate: NTLM response header).\n\nThe purpose of selecting this would be to, for example, use Burp's existing NTLM authentication capability for these hosts.";
+	private final String includePlainhostnamesHelpString = "If this is selected, Kerberos authentication will be attempted against hosts which are specified by \"plain hostnames\", i.e. hostnames that are not qualified with the domain.\n\nThe only reason you might want this would be if your machine was joined to a different domain from the one being authenticated against using this extension.";
+	
+	// logging
+	private final String alertLevelHelpString = "Controls level of logging performed to Burp's Alerts tab.";
+	private final String loggingLevelHelpString = "Controls level of logging performed to extension's standard output.";
+	
 	@Override
 	public Component getUiComponent() {
 		return scroll;
@@ -1774,9 +1785,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				authenticationStrategyPanel.setBorder(BorderFactory
 						.createTitledBorder("Authentication Strategy"));
 
-				optionsPanel = new JPanel(new GridBagLayout());
-				optionsPanel.setBorder(BorderFactory
-						.createTitledBorder("Options"));
+				scopePanel = new JPanel(new GridBagLayout());
+				scopePanel.setBorder(BorderFactory
+						.createTitledBorder("Scope"));
 
 				delegationPanel = new JPanel(new GridBagLayout());
 				delegationPanel.setBorder(BorderFactory
@@ -1795,7 +1806,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				callbacks.customizeUiComponent(domainPanel);
 				callbacks.customizeUiComponent(credsPanel);
 				callbacks.customizeUiComponent(authenticationStrategyPanel);
-				callbacks.customizeUiComponent(optionsPanel);
+				callbacks.customizeUiComponent(scopePanel);
 				callbacks.customizeUiComponent(loggingPanel);
 				callbacks.customizeUiComponent(domainDnsLabel);
 				callbacks.customizeUiComponent(kdcLabel);
@@ -2135,35 +2146,35 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.gridy = 0;
 				authenticationStrategyPanel.add(authStrategyHelpButton, gbc);
 
-				// OPTIONS PANEL LAYOUT
+				// SCOPE PANEL LAYOUT
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 0;
 				gbc.gridy = 0;
-				optionsPanel.add(ignoreNTLMServersCheckBox, gbc);
+				scopePanel.add(ignoreNTLMServersCheckBox, gbc);
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 0;
 				gbc.gridy = 1;
-				optionsPanel.add(includePlainhostnamesCheckBox, gbc);
+				scopePanel.add(includePlainhostnamesCheckBox, gbc);
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
 				gbc.gridy = 0;
-				optionsPanel.add(ignoreNTLMServersHelpButton, gbc);
+				scopePanel.add(ignoreNTLMServersHelpButton, gbc);
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
 				gbc.gridx = 1;
 				gbc.gridy = 1;
-				optionsPanel.add(includePlainhostnamesHelpButton, gbc);
+				scopePanel.add(includePlainhostnamesHelpButton, gbc);
 
 				// MAIN PANEL LAYOUT
 
@@ -2217,7 +2228,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.weighty = 0.1;
 				gbc.gridx = 0;
 				gbc.gridy = 5;
-				mainPanel.add(optionsPanel, gbc);
+				mainPanel.add(scopePanel, gbc);
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.1;
 				gbc.gridx = 0;
@@ -2568,8 +2579,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		enableComponents(credsPanel, enabled);
 		authenticationStrategyPanel.setEnabled(enabled);
 		enableComponents(authenticationStrategyPanel, enabled);
-		optionsPanel.setEnabled(enabled);
-		enableComponents(optionsPanel, enabled);
+		scopePanel.setEnabled(enabled);
+		enableComponents(scopePanel, enabled);
 		loggingPanel.setEnabled(enabled);
 		enableComponents(loggingPanel, enabled);
 		delegationPanel.setEnabled(enabled);
