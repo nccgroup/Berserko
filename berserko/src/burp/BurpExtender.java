@@ -1012,9 +1012,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				"WWW-Authenticate: NTLM");
 
 		if (ignoreNTLMServers) {
-			alertAndLog(1, String.format(
-					"Not authenticating to server %s as it supports NTLM",
-					hostname));
+			if( supportsNegotiate && supportsNTLM)
+			{
+				alertAndLog(1, String.format( "Not authenticating to server %s as it supports NTLM", hostname));
+			}
 			return supportsNegotiate && !supportsNTLM;
 		} else {
 			return supportsNegotiate;
