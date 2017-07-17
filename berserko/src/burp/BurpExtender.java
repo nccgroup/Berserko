@@ -2010,8 +2010,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				credsPanel.add(savePasswordHelpButton, gbc);
 
 				// DELEGATION PANEL LAYOUT
-
-
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
@@ -2128,21 +2126,21 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 0;
-				gbc.gridy = 1;
+				gbc.gridx = 1;
+				gbc.gridy = 0;
 				authenticationStrategyPanel.add(proactiveButton, gbc);
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 0;
-				gbc.gridy = 2;
+				gbc.gridx = 2;
+				gbc.gridy = 0;
 				authenticationStrategyPanel.add(proactiveAfter401Button, gbc);
 				gbc.insets = new Insets(5, 5, 5, 5);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 2;
+				gbc.gridx = 3;
 				gbc.gridy = 0;
 				authenticationStrategyPanel.add(authStrategyHelpButton, gbc);
 
