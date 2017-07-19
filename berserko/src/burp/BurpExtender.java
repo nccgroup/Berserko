@@ -377,10 +377,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	}
 
 	private void addSpnToListIfNotInvalid(List<String> l, String spn,
-			String hostname) {
+			String hostname, int port) {
 		if (!failedSpns.contains(spn)) {
-			if (failedSpnsForHost.containsKey(hostname.toLowerCase())) {
-				if (failedSpnsForHost.get(hostname.toLowerCase()).contains(spn)) {
+			if (failedSpnsForHost.containsKey(hostnameColonPort( hostname, port).toLowerCase())) {
+				if (failedSpnsForHost.get(hostnameColonPort( hostname, port).toLowerCase()).contains(spn)) {
 					return;
 				}
 			}
@@ -388,40 +388,50 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		}
 	}
 
-	private List<String> hostnameToSpn(String hostname) {
+	private List<String> hostnameToSpn(String hostname, int port) {
 		List<String> ret = new ArrayList<String>();
 
-		if (hostnameToSpnMap.containsKey(hostname.toLowerCase())) {
-			ret.add(hostnameToSpnMap.get(hostname.toLowerCase()));
+		if (hostnameToSpnMap.containsKey(hostnameColonPort(hostname, port).toLowerCase())) {
+			ret.add(hostnameToSpnMap.get(hostnameColonPort(hostname, port).toLowerCase()));
 		} else {
-			if (!hostnamesWithUnknownSpn.contains(hostname.toLowerCase())) {
-				hostnamesWithUnknownSpn.add(hostname.toLowerCase());
+			if (!hostnamesWithUnknownSpn.contains(hostnameColonPort(hostname, port).toLowerCase())) {
+				hostnamesWithUnknownSpn.add(hostnameColonPort(hostname, port).toLowerCase());
 			}
 
 			if (isPlainhostname(hostname)) {
 				addSpnToListIfNotInvalid(ret, "HTTP/"
 						+ expandHostname(hostname).toLowerCase() + "@"
-						+ getRealmName(), hostname);
+						+ getRealmName(), hostname, port);
 				addSpnToListIfNotInvalid(ret, "http/"
 						+ expandHostname(hostname).toLowerCase() + "@"
-						+ getRealmName(), hostname);
+						+ getRealmName(), hostname, port);
 				addSpnToListIfNotInvalid(ret, "HTTP/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname);
+						+ "@" + getRealmName(), hostname, port);
 				addSpnToListIfNotInvalid(ret, "http/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname);
-				// TODO: include port names
-				// TODO: include string from host headers
+						+ "@" + getRealmName(), hostname, port);
 			} else {
 				addSpnToListIfNotInvalid(ret, "HTTP/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname);
+						+ "@" + getRealmName(), hostname, port);
 				addSpnToListIfNotInvalid(ret, "http/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname);
+						+ "@" + getRealmName(), hostname, port);
+				if( port != 80 && port != 443)
+				{
+					addSpnToListIfNotInvalid(ret, "http/" + hostname.toLowerCase() + ":" + port
+							+ "@" + getRealmName(), hostname, port);
+				}
+				
+				// TODO: no need to try plain hostnames here if it doesn't end with DNS domain name?
 				addSpnToListIfNotInvalid(ret,
 						"HTTP/" + getPlainHostname(hostname).toLowerCase()
-								+ "@" + getRealmName(), hostname);
+								+ "@" + getRealmName(), hostname, port);
 				addSpnToListIfNotInvalid(ret,
 						"http/" + getPlainHostname(hostname).toLowerCase()
-								+ "@" + getRealmName(), hostname);
+								+ "@" + getRealmName(), hostname, port);
+				if( port != 80 && port != 443)
+				{
+					addSpnToListIfNotInvalid(ret, "http/" + getPlainHostname(hostname).toLowerCase() + ":" + port
+							+ "@" + getRealmName(), hostname, port);
+				}				
 			}
 		}
 
@@ -433,14 +443,14 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		return username.toLowerCase() + "@" + getRealmName();
 	}
 
-	private boolean hostnameIsInWorkingSet(String hostname) {
-		return workingSet.contains(expandHostname(hostname).toLowerCase());
+	private boolean hostnameIsInWorkingSet(String hostname, int port) {
+		return workingSet.contains(hostnameColonPort(expandHostname(hostname), port).toLowerCase());
 	}
 
-	private void addHostnameToWorkingSet(String hostname) {
-		if (!workingSet.contains(expandHostname(hostname).toLowerCase())) {
-			log(2, String.format("Adding %s to working set", hostname));
-			workingSet.add(expandHostname(hostname).toLowerCase());
+	private void addHostnameToWorkingSet(String hostname, int port) {
+		if (!workingSet.contains(hostnameColonPort(expandHostname(hostname), port).toLowerCase())) {
+			log(2, String.format("Adding %s to working set", hostnameColonPort( hostname, port)));
+			workingSet.add(hostnameColonPort(expandHostname(hostname), port).toLowerCase());
 		}
 	}
 
@@ -600,6 +610,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 		log(2, String.format("New username (%s) and password set", username));
 	}
+	
+	private String hostnameColonPort( String hostname, int port)
+	{
+		return String.format( "%s:%d", hostname, port);
+	}
 
 	@Override
 	public void processHttpMessage(int toolFlag, boolean messageIsRequest,
@@ -615,6 +630,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					IRequestInfo reqInfo = helpers.analyzeRequest(messageInfo);
 					List<String> headers = reqInfo.getHeaders();
 					String hostname = messageInfo.getHttpService().getHost();
+					int port = messageInfo.getHttpService().getPort();
 
 					if (hostnameIsInScope(hostname)) {
 						try {
@@ -632,19 +648,19 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 										messageInfo.getRequest(),
 										reqInfo.getBodyOffset(),
 										messageInfo.getRequest().length);
-								log(2, "Getting token for " + hostname);
-								ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname));
+								log(2, "Getting token for " + hostnameColonPort( hostname, port));
+								ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname, port));
 
 								if (ctst != null) {
 									log(2, "Setting token in request to "
-											+ hostname);
+											+ hostnameColonPort( hostname, port));
 									headers.add(buildAuthenticateHeaderFromToken(ctst
 											.getToken()));
 									messageInfo.setRequest(helpers
 											.buildHttpMessage(headers, body));
-									addHostnameToWorkingSet(hostname);
+									addHostnameToWorkingSet( hostname, port);
 									if (hostnamesWithUnknownSpn
-											.contains(hostname.toLowerCase())) {
+											.contains(hostnameColonPort(hostname, port).toLowerCase())) {
 										contextCache.AddToCache(ctst);
 									}
 								}
@@ -661,8 +677,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					IRequestInfo reqInfo = helpers.analyzeRequest(messageInfo);
 					List<String> headers = reqInfo.getHeaders();
 					String hostname = messageInfo.getHttpService().getHost();
+					int port = messageInfo.getHttpService().getPort();
 
-					if (hostnameIsInWorkingSet(hostname)) {
+					if (hostnameIsInWorkingSet(hostname, port)) {
 						try {
 							if (headersContainStartswith(headers,
 									"Authorization")) {
@@ -674,8 +691,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 												"Authorization header (%s) already applied for in-scope host %s; ignoring this host. Perhaps Burp \"Platform Authentication\" is configured against this host?",
 												scheme, hostname));
 							} else {
-								log(2, "Getting token for " + hostname);
-								ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname));
+								log(2, "Getting token for " + hostnameColonPort( hostname, port));
+								ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname, port));
 
 								if (ctst != null) {
 									byte[] body = Arrays.copyOfRange(
@@ -683,13 +700,13 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 											reqInfo.getBodyOffset(),
 											messageInfo.getRequest().length);
 									log(2, "Setting token in request to "
-											+ hostname);
+											+ hostnameColonPort( hostname, port));
 									headers.add(buildAuthenticateHeaderFromToken(ctst
 											.getToken()));
 									messageInfo.setRequest(helpers
 											.buildHttpMessage(headers, body));
 									if (hostnamesWithUnknownSpn
-											.contains(hostname.toLowerCase())) {
+											.contains(hostnameColonPort(hostname, port).toLowerCase())) {
 										contextCache.AddToCache(ctst);
 									}
 								}
@@ -729,6 +746,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					byte[] req = messageInfo.getRequest();
 					IRequestInfo reqInfo = helpers.analyzeRequest(messageInfo);
 					String hostname = messageInfo.getHttpService().getHost();
+					int port = messageInfo.getHttpService().getPort();
 					byte[] body = Arrays.copyOfRange(req,
 							reqInfo.getBodyOffset(), req.length);
 					List<String> requestHeaders = helpers.analyzeRequest(req)
@@ -737,7 +755,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					if (headersContainStartswith(requestHeaders,
 							"Authorization")) // this was a failed authentication...
 					{
-						if (hostnameIsInWorkingSet(hostname)) // ... a failed authentication by us
+						if (hostnameIsInWorkingSet(hostname, port)) // ... a failed authentication by us
 						{
 							String requestToken = getTokenFromAuthorizationNegotiateRequestHeader(getHeaderStartingWith(
 									requestHeaders, "Authorization:"));
@@ -758,29 +776,29 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 											1,
 											String.format(
 													"Failed Kerberos authentication to host %s: unknown error",
-													hostname));
+													hostnameColonPort( hostname, port)));
 								} else if (err
 										.contains("AP_REP token id does not match")) {
 									alertAndLog(
 											1,
 											String.format(
 													"Failed Kerberos authentication to host %s - possibly service ticket for wrong service being used, error message was %s",
-													hostname, err));
+													hostnameColonPort( hostname, port), err));
 									log(2, String.format(
 											"SPN %s incorrect for hostname %s",
-											ctst.getSpn(), hostname));
+											ctst.getSpn(), hostnameColonPort( hostname, port)));
 
-									if (!failedSpnsForHost.containsKey(hostname
+									if (!failedSpnsForHost.containsKey(hostnameColonPort( hostname, port)
 											.toLowerCase())) {
 										failedSpnsForHost.put(
-												hostname.toLowerCase(),
+												hostnameColonPort( hostname, port).toLowerCase(),
 												new ArrayList<String>());
 									}
 									if (!failedSpnsForHost.get(
-											hostname.toLowerCase()).contains(
+											hostnameColonPort( hostname, port).toLowerCase()).contains(
 											ctst.getSpn())) {
 										failedSpnsForHost.get(
-												hostname.toLowerCase()).add(
+												hostnameColonPort( hostname, port).toLowerCase()).add(
 												ctst.getSpn());
 									}
 								} else {
@@ -788,14 +806,14 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 											1,
 											String.format(
 													"Failed Kerberos authentication to host %s: error %s",
-													hostname, err));
+													hostnameColonPort( hostname, port), err));
 								}
 							} else {
 								alertAndLog(
 										1,
 										String.format(
 												"Failed Kerberos authentication to host %s: unknown error",
-												hostname));
+												hostnameColonPort( hostname, port)));
 								log(2,
 										"Response from server: "
 												+ getHeaderStartingWith(
@@ -815,9 +833,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					} else if (authStrategy == AuthStrategy.REACTIVE_401) {
 						try {
 							if (hostnameIsInScope(hostname)
-									&& !hostnameIsInWorkingSet(hostname)) {
-								log(2, "Getting token for " + hostname);
-								ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname));
+									&& !hostnameIsInWorkingSet(hostname, port)) {
+								log(2, "Getting token for " + hostnameColonPort( hostname, port));
+								ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname, port));
 
 								if (ctst != null) {
 									requestHeaders
@@ -825,7 +843,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 													.getToken()));
 									log(2,
 											"Creating new authenticated request to "
-													+ hostname);
+													+ hostnameColonPort( hostname, port));
 									IHttpRequestResponse resp = callbacks
 											.makeHttpRequest(messageInfo
 													.getHttpService(), helpers
@@ -855,34 +873,34 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 														1,
 														String.format(
 																"Failed Kerberos authentication to host %s: unknown error",
-																hostname));
+																hostnameColonPort( hostname, port)));
 											} else if (err
 													.contains("AP_REP token id does not match")) {
 												alertAndLog(
 														1,
 														String.format(
 																"Failed Kerberos authentication to host %s - possibly service ticket for wrong service being used, error message was %s",
-																hostname, err));
+																hostnameColonPort( hostname, port), err));
 												log(2,
 														String.format(
 																"SPN %s incorrect for hostname %s",
 																ctst.getSpn(),
-																hostname));
+																hostnameColonPort( hostname, port)));
 
 												if (!failedSpnsForHost
-														.containsKey(hostname
+														.containsKey(hostnameColonPort( hostname, port)
 																.toLowerCase())) {
 													failedSpnsForHost
-															.put(hostname
+															.put(hostnameColonPort( hostname, port)
 																	.toLowerCase(),
 																	new ArrayList<String>());
 												}
 												if (!failedSpnsForHost
-														.get(hostname
+														.get(hostnameColonPort( hostname, port)
 																.toLowerCase())
 														.contains(ctst.getSpn())) {
 													failedSpnsForHost
-															.get(hostname
+															.get(hostnameColonPort( hostname, port)
 																	.toLowerCase())
 															.add(ctst.getSpn());
 												}
@@ -893,7 +911,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 														1,
 														String.format(
 																"Failed Kerberos authentication to host %s: error %s",
-																hostname, err));
+																hostnameColonPort( hostname, port), err));
 											}
 										} else {
 											alertAndLog(
@@ -904,15 +922,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 										messageInfo.setResponse(resp
 												.getResponse());
 										if (!hostnameToSpnMap
-												.containsKey(hostname
+												.containsKey(hostnameColonPort( hostname, port)
 														.toLowerCase())) {
 											log(2,
 													String.format(
 															"Storing hostname->SPN mapping: %s->%s",
-															hostname.toLowerCase(),
+															hostnameColonPort( hostname, port).toLowerCase(),
 															ctst.getSpn()));
 											hostnameToSpnMap.put(
-													hostname.toLowerCase(),
+													hostnameColonPort( hostname, port).toLowerCase(),
 													ctst.getSpn());
 										}
 									}
@@ -926,11 +944,11 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 							logException(2, e);
 						}
 					} else if (authStrategy == AuthStrategy.PROACTIVE_AFTER_401
-							&& !hostnameIsInWorkingSet(hostname)
+							&& !hostnameIsInWorkingSet(hostname, port)
 							&& hostnameIsInScope(hostname)) {
 						try {
-							log(2, "Getting token for " + hostname);
-							ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname));
+							log(2, "Getting token for " + hostnameColonPort( hostname, port));
+							ContextTokenSpnTriple ctst = getToken(hostnameToSpn(hostname, port));
 
 							if (ctst != null) {
 								requestHeaders
@@ -938,7 +956,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 												.getToken()));
 
 								log(2, "Creating new authenticated request to "
-										+ hostname);
+										+ hostnameColonPort( hostname, port));
 								IHttpRequestResponse resp = callbacks
 										.makeHttpRequest(messageInfo
 												.getHttpService(), helpers
@@ -965,41 +983,41 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 												1,
 												String.format(
 														"Failed Kerberos authentication to host %s - possibly service ticket for wrong service being used, error message was %s",
-														hostname, err));
+														hostnameColonPort( hostname, port), err));
 										log(2,
 												String.format(
 														"SPN %s incorrect for hostname %s",
-														ctst.getSpn(), hostname));
+														ctst.getSpn(), hostnameColonPort( hostname, port)));
 
 										if (!failedSpnsForHost
-												.containsKey(hostname
+												.containsKey(hostnameColonPort( hostname, port)
 														.toLowerCase())) {
 											failedSpnsForHost.put(
-													hostname.toLowerCase(),
+													hostnameColonPort( hostname, port).toLowerCase(),
 													new ArrayList<String>());
 										}
 										if (!failedSpnsForHost.get(
-												hostname.toLowerCase())
+												hostnameColonPort( hostname, port).toLowerCase())
 												.contains(ctst.getSpn())) {
 											failedSpnsForHost.get(
-													hostname.toLowerCase())
+													hostnameColonPort( hostname, port).toLowerCase())
 													.add(ctst.getSpn());
 										}
 
 										// TODO: maybe try again with the next SPN?
 									} else {
 										alert(1,
-												String.format("Failed Kerberos authentication to host %s: unknown error, server did not supply WWW-Authenticate response header"));
+												String.format("Failed Kerberos authentication to host %s: unknown error, server did not supply WWW-Authenticate response header", hostnameColonPort( hostname, port)));
 									}
 								} else {
-									addHostnameToWorkingSet(hostname);
+									addHostnameToWorkingSet( hostname, port);
 									log(2,
 											String.format(
 													"Storing hostname->SPN mapping: %s->%s",
-													hostname.toLowerCase(),
+													hostnameColonPort( hostname, port).toLowerCase(),
 													ctst.getSpn()));
 									hostnameToSpnMap.put(
-											hostname.toLowerCase(),
+											hostnameColonPort( hostname, port).toLowerCase(),
 											ctst.getSpn());
 									messageInfo.setResponse(resp.getResponse());
 								}
@@ -1015,8 +1033,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				} else {
 					if (!contextCache.isEmpty()) {
 						byte[] req = messageInfo.getRequest();
-						String hostname = messageInfo.getHttpService()
-								.getHost();
+						String hostname = messageInfo.getHttpService().getHost();
+						int port = messageInfo.getHttpService().getPort();
 						List<String> requestHeaders = helpers.analyzeRequest(
 								req).getHeaders();
 
@@ -1028,16 +1046,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 						if (ctst != null) {
 							contextCache.RemoveFromCache(requestToken);
-							if (hostnamesWithUnknownSpn.contains(hostname
+							if (hostnamesWithUnknownSpn.contains(hostnameColonPort(hostname, port)
 									.toLowerCase())) {
 								log(2,
 										String.format(
 												"Storing hostname->SPN mapping: %s->%s",
-												hostname.toLowerCase(),
+												hostnameColonPort( hostname, port).toLowerCase(),
 												ctst.getSpn()));
-								hostnamesWithUnknownSpn.remove(hostname
+								hostnamesWithUnknownSpn.remove(hostnameColonPort(hostname, port)
 										.toLowerCase());
-								hostnameToSpnMap.put(hostname.toLowerCase(),
+								hostnameToSpnMap.put(hostnameColonPort(hostname, port).toLowerCase(),
 										ctst.getSpn());
 							}
 						}
