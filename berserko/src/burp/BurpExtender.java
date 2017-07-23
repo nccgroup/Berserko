@@ -1392,6 +1392,17 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private void setKrb5Config() {
 		System.setProperty("java.security.krb5.conf", krb5File);
 	}
+	
+	private void clearKerberosState()
+	{
+		clearLoginContext();
+		
+		workingSet = new ArrayList<String>();				
+		hostnameToSpnMap = new HashMap<String, String>();
+		failedSpns = new ArrayList<String>();;
+		failedSpnsForHost = new HashMap<String, List<String>>();
+		hostnamesWithUnknownSpn = new ArrayList<String>();
+	}
 
 	private void setupLoginContext() {
 		if (loginFailed) {
@@ -1662,6 +1673,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JCheckBox masterSwitchCheckBox;
 	JLabel versionLabel;
 	JButton restoreDefaultsButton;
+	JButton clearStateButton;
 	
 	// panels
 	JPanel domainPanel;
@@ -1812,7 +1824,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 						"Do Kerberos authentication");
 				versionLabel = new JLabel(extensionName + " version "
 						+ versionString);
-				restoreDefaultsButton = new JButton("Restore defaults");
+				restoreDefaultsButton = new JButton("Restore default settings");
+				clearStateButton = new JButton("Clear Kerberos state");
 
 				domainPanel = new JPanel(new GridBagLayout());
 				domainPanel.setBorder(BorderFactory
@@ -1928,6 +1941,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				callbacks.customizeUiComponent(masterSwitchCheckBox);
 				callbacks.customizeUiComponent(versionLabel);
 				callbacks.customizeUiComponent(restoreDefaultsButton);
+				callbacks.customizeUiComponent(clearStateButton);
 				callbacks.customizeUiComponent(domainPanel);
 				callbacks.customizeUiComponent(credsPanel);
 				callbacks.customizeUiComponent(authenticationStrategyPanel);
@@ -2373,7 +2387,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 				// MAIN PANEL LAYOUT
 
-				gbc.gridwidth = 4;
+				gbc.gridwidth = 5;
 				gbc.fill = GridBagConstraints.HORIZONTAL;
 				gbc.weightx = 1.0;
 				gbc.weighty = 0.0;
@@ -2384,9 +2398,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
-				gbc.gridx = 3;
+				gbc.gridx = 2;
 				gbc.gridy = 0;
 				mainPanel.add(restoreDefaultsButton, gbc);
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
+				gbc.gridx = 3;
+				gbc.gridy = 0;
+				mainPanel.add(clearStateButton, gbc);
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
@@ -2760,6 +2780,21 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					public void actionPerformed(ActionEvent e) {
 						setDefaultConfig();
 						initialiseGUIFromConfig();
+					}
+				});
+				
+				clearStateButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						int n = JOptionPane.showConfirmDialog(
+								null,
+								"Are you sure you want to clear the current Kerberos state (tickets, cached SPN mappings, etc.)?\n\nThere is usually no need to do this unless changes have been made on the server side and you want to start from a clean state.", "Clear Kerberos state",
+								JOptionPane.YES_NO_OPTION);
+
+						if (n == JOptionPane.NO_OPTION) {
+							return;
+						}	
+						
+						clearKerberosState();
 					}
 				});
 
