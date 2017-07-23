@@ -113,7 +113,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private Map<String, List<String>> failedSpnsForHost = null;
 	private List<String> hostnamesWithUnknownSpn = null;
 	private ContextCache contextCache = null;
-
+	private Map<String,Pattern> scopeStringRegexpMap = null;
+	
 	// config
 	private String domainDnsName;
 	private String kdcHost;
@@ -168,6 +169,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		manager = GSSManager.getInstance();
 
 		log(1, "Berserko version " + versionString);
+		
+		scopeStringRegexpMap = new HashMap<String, Pattern>();
 
 		/*
 		 * clearLoginContext(); workingSet = Collections.synchronizedList(new
@@ -251,7 +254,10 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		
 		for( String t : tokens)
 		{
-			hosts.add( t);
+			if( t.length() > 0)
+			{
+				hosts.add( t);
+			}				
 		}
 		
 		return hosts;
@@ -454,13 +460,60 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		}
 	}
 
+	private Pattern getPatternForScopeString( String s)
+	{
+		if( scopeStringRegexpMap.containsKey(s))
+		{
+			return scopeStringRegexpMap.get(s);
+		}
+		else
+		{
+			// transform the "regexp" from the scope box to an actual hostname
+			String r = s.replace( ".", "\\.");		// dots in hostnames should be treated as literal dots
+			r = s.replace( "-", "\\-");				// same for hyphens
+			r = r.replace( "*", ".*");				// our "regexp" says that * matches zero or more characters. Needs to be ".*"
+			r = r.replace( "?", "[^.]");			// question mark is to match anything but a dot
+			
+			Pattern p = Pattern.compile(r); 
+			scopeStringRegexpMap.put( s, p);
+			return p;
+		}
+	}
+	
 	private boolean hostnameIsInScope(String hostname) {
+		if( everythingInScope)
+		{
+			return true;
+		}
+		else
+		{
+			if( isPlainhostname(hostname) && plainhostExpand && wholeDomainInScope)
+			{
+				return true;
+			}
+			
+			if( wholeDomainInScope && hostname.toLowerCase().endsWith(domainDnsName.toLowerCase()))
+			{
+				return true;
+			}
+			
+			for( String s : hostsInScope)
+			{
+				Pattern p = getPatternForScopeString(s);
+				Matcher m = p.matcher(hostname);
+				if( m.matches())
+				{
+					return true;
+				}
+			}
+		}
+			
 		if (plainhostExpand && isPlainhostname(hostname)) {
 			return true;
 		} else {
 			return hostname.toLowerCase().endsWith(domainDnsName.toLowerCase());
 		}
-	}
+	}	
 
 	private String expandHostname(String hostname) {
 		if (isPlainhostname(hostname)) {
@@ -481,7 +534,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	}
 
 	private boolean isPlainhostname(String hostname) {
-		return hostname.indexOf('.') == -1;
+		return (hostname.length() > 0) && (hostname.indexOf('.') == -1);
 	}
 
 	private String buildAuthenticateHeaderFromToken(String token) {
@@ -1730,6 +1783,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	public String getTabCaption() {
 		return tabName;
 	}
+	
+	private void updateHostsInScope()
+	{
+		hostsInScope = new ArrayList<String>();
+		
+		for( int ii=0; ii<scopeListBox.getModel().getSize(); ii++)
+		{
+			hostsInScope.add( scopeListBox.getModel().getElementAt(ii));
+		}
+	}
 
 	private void setupGUI() {
 		SwingUtilities.invokeLater(new Runnable() {
@@ -2523,6 +2586,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 							}
 							
 							((DefaultListModel<String>) scopeListBox.getModel()).addElement( s);
+							updateHostsInScope();
 						}
 					}
 				});	
@@ -2566,6 +2630,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 								}
 					    		
 								((DefaultListModel<String>) scopeListBox.getModel()).setElementAt( s, index);
+								updateHostsInScope();
 							}
 					    }
 					}
@@ -2577,6 +2642,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					    if (index != -1) 
 					    { 
 					    	((DefaultListModel<String>) scopeListBox.getModel()).removeElementAt(index);
+					    	updateHostsInScope();
 					    } 
 					}
 				});						
@@ -3080,8 +3146,9 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			setCredentials(username, password);
 		}
 	}
-
+	
 	private void testCredentials() {
+		
 		if (usernameTextField.getText().isEmpty()) {
 			JOptionPane.showMessageDialog(null, "Username not set yet",
 					"Error", JOptionPane.ERROR_MESSAGE);
