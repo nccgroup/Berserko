@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Timestamp;
@@ -41,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.crypto.Cipher;
 import javax.naming.Context;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
@@ -95,6 +97,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private IExtensionHelpers helpers;
 
 	private PrintWriter stdout = null;
+	
+	private boolean unlimitedJCE = false;
 
 	private GSSManager manager;
 	private LoginContext loginContext = null;
@@ -171,6 +175,12 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		log(1, "Berserko version " + versionString);
 		
 		scopeStringRegexpMap = new HashMap<String, Pattern>();
+		unlimitedJCE = isUnlimitedJCE();
+		
+		if( !unlimitedJCE)
+		{
+			alertAndLog( 1, "Warning: JCE Unlimited Strength Jurisdiction Policy does not appear to be installed in your JRE. This restricts the set of cryptographic algorithms available to Burp and could lead to failure to perform Kerberos authentication in some domains. See http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits. Also note that newer versions of Burp seem to have a workaround for this.");
+		}
 
 		/*
 		 * clearLoginContext(); workingSet = Collections.synchronizedList(new
@@ -1487,6 +1497,16 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 										domainDnsName, username));
 						// incorrectCreds = true;
 					}
+				} else if( e.getMessage().startsWith( "KDC has no support for encryption type"))
+				{
+					if( unlimitedJCE)
+					{
+						alertAndLog( 1, "Failed to acquire TGT - encryption algorithm not supported by KDC. This is unexpected, as you appear to have the JCE Unlimited Strength Jurisdiction Policy installed.");
+					}
+					else
+					{
+						alertAndLog( 1, "Failed to acquire TGT - encryption algorithm not supported by KDC. This is likely to be because you do not have the JCE Unlimited Strength Jurisdiction Policy installed. See http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits. Also note that newer versions of Burp seem to have a workaround for this.");
+					}
 				} else {
 					alertAndLog(
 							1,
@@ -1664,6 +1684,32 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 		return false;
 	}
+	
+    private boolean isUnlimitedJCE() {
+        
+        try {
+        	if( Cipher.getMaxAllowedKeyLength("AES") < 256)
+        	{
+        		return false;
+        	}
+        } 
+        catch (NoSuchAlgorithmException ex) 
+        {
+        	try
+        	{
+	        	if( Cipher.getMaxAllowedKeyLength("RC4") < 256)
+	        	{
+	        		return false;
+	        	} 
+        	}
+        	catch(NoSuchAlgorithmException e)
+        	{
+        		return false;	// really shouldn't get here
+        	}
+        }
+        	
+        return true;
+    }
 
 	// ================== GUI code starts here ========================================
 
@@ -3211,7 +3257,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		setKrb5Config();
 
 		setupKerberosConfig();
-
+		
 		try {
 			LoginContext loginContext = new LoginContext("KrbLogin",
 					new KerberosCallBackHandler(username, password));
@@ -3239,6 +3285,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 								null,
 								"Failed to acquire TGT - username appears to be invalid.",
 								"Failure", JOptionPane.ERROR_MESSAGE);
+				log(1, "Error when testing credentials: " + e.getMessage());				
 			} else if (e.getMessage().startsWith(
 					"Pre-authentication information was invalid")) {
 				credentialsStatusTextField
@@ -3248,6 +3295,28 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 								null,
 								"Failed to acquire TGT - password appears to be invalid.\n\nBe careful not to lock out the account with more tests.",
 								"Failure", JOptionPane.ERROR_MESSAGE);
+				log(1, "Error when testing credentials: " + e.getMessage());
+			} else if( e.getMessage().startsWith( "KDC has no support for encryption type"))
+			{
+				credentialsStatusTextField
+				.setText("Failed to acquire TGT - encryption type not supported");
+				if( unlimitedJCE)
+				{
+					JOptionPane
+					.showMessageDialog(
+							null,
+							"Failed to acquire TGT - encryption algorithm not supported by KDC.\n\nThis is unexpected, as you appear to have the JCE Unlimited Strength Jurisdiction Policy installed.",
+							"Failure", JOptionPane.ERROR_MESSAGE);
+				}
+				else
+				{
+					JOptionPane
+					.showMessageDialog(
+							null,
+							"Failed to acquire TGT - encryption algorithm not supported by KDC.\n\nThis is likely to be because you do not have the JCE Unlimited Strength Jurisdiction Policy installed.\n\nSee http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits\n\nAlso note that newer versions of Burp seem to have a workaround for this.",
+							"Failure", JOptionPane.ERROR_MESSAGE);
+				}
+				alertAndLog(1, "Error when testing credentials: " + e.getMessage());
 			} else {
 				credentialsStatusTextField.setText("Failed to acquire TGT: "
 						+ e.getMessage());
@@ -3327,7 +3396,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 								null,
 								"Failed to contact Kerberos service - error code 68 suggests that KDC is valid but domain DNS name is wrong",
 								"Failure", JOptionPane.ERROR_MESSAGE);
-			} else {
+			} 
+			else {
 				domainStatusTextField
 						.setText("Connected to port 88, but failed to contact Kerberos service: "
 								+ e.getMessage());
@@ -3443,4 +3513,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
+	
+
 }
