@@ -3246,7 +3246,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			int n = JOptionPane
 					.showConfirmDialog(
 							null,
-							"You haven't successfully tested the domain settings yet, do you want to continue without doing so?",
+							"You haven't successfully tested the domain settings yet, do you want to continue without doing so?\nIf the KDC can't be found, this command will hang Burp for quite a while (around 90 seconds).",
 							"Proceed?", JOptionPane.YES_NO_OPTION);
 
 			if (n == JOptionPane.NO_OPTION) {
