@@ -37,6 +37,8 @@ The *Do Kerberos authentication* checkbox is a master switch. Until it is enable
 
 The *Restore defaults* button will return Berserko to the default configuration (in which no domain details or user credentials are present).
 
+The *Clear Kerberos state* button will clear out all Kerberos tickets and other state on the client. There only reason you might need to use this would be if changes had been made to the Kerberos configuration on the server side and you wanted to start from a fresh state.
+
 Some controls have a help button that will pop up more information.
 
 #### Domain Settings ####
@@ -50,6 +52,8 @@ Having supplied the *Domain DNS Name*, you can use the *Auto* button to try to a
 
 When the *Domain DNS Name* and *KDC Host* have been entered, use the *Test domain settings* button to test connectivity. All being well, you will get a *Successfully contacted Kerberos service* response. 
 
+See the section at the end of this README for lots more information about obtaining the correct values for these Domain Settings.
+
 #### Domain Credentials ####
 Specify the **Username** and **Password** for a domain account using the controls in this section. The textboxes can't be edited directly; you have to use the 'Change' button to modify them.
 
@@ -58,18 +62,6 @@ The *Username* should just be the plain username. This should be something like 
 Having supplied the credentials, you can use the *Test credentials* button. This will attempt to acquire a Kerberos ticket-granting ticket for the specified user. If successful, you will get a *TGT successfully acquired* response. If not successful, note that this is a domain authentication attempt, so be careful not to lock out your account.
 
 The password will not be saved in the Berserko config for next time unless the *Save password in Burp config?* checkbox is ticked. All other settings will be saved though.
-
-#### Authentication Strategy ####
-The settings in this section control whether Berserko attempts Kerberos authentication 'reactively' (i.e. wait to get a 401 response from the server and then resend the request with a Kerberos authentication header added) or 'proactively' (i.e. add the Kerberos authentication header to the outgoing request).
-
-The advantage of proactive authentication is that it only requires one HTTP round trip, while reactive authentication requires two. The disadvantage of proactive authentication is that it is possible that Kerberos authentication headers will be sent to hosts which aren't expecting them. Berserko is also better able to diagnose authentication errors when using the reactive strategy. 
-
-The *Proactive Kerberos authentication, only after initial 401 received* option is a hybrid of these two approaches, where Berserko will authenticate reactively on the first request to a host, but will thereafter be proactive.
-
-#### Options ####
-If selected, the *Do not perform Kerberos authentication to servers which support NTLM* option will instruct Berserko not to attempt Kerberos authentication against hosts which support NTLM in addition to Kerberos (i.e. hosts that return both `WWW-Authenticate: NTLM` and `WWW-Authenticate: Negotiate` headers).
-
-The *Plain hostnames considered part of domain* option, if selected, means that Kerberos authentication will be attempted against hosts which are specified by 'plain hostnames' (i.e. hostnames that are not qualified with the domain). The main reason you might want to disable this would be if your machine was joined to a different domain from the one being authenticated against using Berserko (in which case, plain hostnames probably refer to hosts in the domain to which you are joined).
 
 ### Delegation ###
 Some applications use Kerberos delegation on the server side to forward the client's identity to other servers (but there isn't an easy way to determine from the client side if this is in use).
@@ -91,6 +83,26 @@ If you want to know whether your delegation configuration is successful, use the
 
 It's a good idea to make sure that you have a forwardable ticket *before* you start to use an application. It seems that IIS can cache the authentication status of a user on the server side in such a way that switching from a non-forwardable ticket to a forwardable one won't work.
 
+#### Authentication Strategy ####
+The settings in this section control whether Berserko attempts Kerberos authentication 'reactively' (i.e. wait to get a 401 response from the server and then resend the request with a Kerberos authentication header added) or 'proactively' (i.e. add the Kerberos authentication header to the outgoing request).
+
+The advantage of proactive authentication is that it only requires one HTTP round trip, while reactive authentication requires two. The disadvantage of proactive authentication is that it is possible that Kerberos authentication headers will be sent to hosts which aren't expecting them. Berserko is also better able to diagnose authentication errors when using the reactive strategy. 
+
+The *Proactive Kerberos authentication, only after initial 401 received* option is a hybrid of these two approaches, where Berserko will authenticate reactively on the first request to a host, but will thereafter be proactive.
+
+#### Scope ####
+In this section, you can define which hosts are considered to be in scope for Kerberos authentication.
+
+By default, the *All hosts in this Kerberos domain in scope for Kerberos* box will be ticked. This means that Berserko will attempt Kerberos authentication only to web servers whose hostname ends with the domain DNS name. In many situations this will be sufficient. However, it is possible to have Kerberos-enabled web applications with a hostname which doesn't take this form (assuming that the administrator has set up a suitable Service Principal Name). To take account of this, you can add *additional* hosts to be considered in scope using the list box on the right. Note that wildcards can be used (* matches zero or more characters, ? matches any character except a dot).
+
+Alternatively, you can tick the *All hosts in scope for Kerberos authentication* box. Obviously this has the advantage that you don't need to bother specifying the scope manually. The potential disadvantage of this configuration is that it might lead to Berserko sending Kerberos requests to the KDC to acquire service tickets for hosts which are not in the domain. This might cause performance issues, and might cause privacy issues (if you don't want this information leaked to the KDC). This is likely to be a particular problem with the *Proactive Kerberos authentication* strategy, in which case Berserko is going to try to add a Kerberos authentication header to every request passing through Burp. This combination of options is not recommended, and Berserko will warn you if it is selected (but not actually prevent it).
+
+If neither *All hosts in this Kerberos domain in scope for Kerberos* nor *All hosts in scope for Kerberos authentication* are selected, the only hosts in scope will be those added to the list box.
+
+The *Plain hostnames considered part of domain* option, if selected, means that 'plain hostnames' (i.e. hostnames which consist only of a single component) will be considered part of the domain (and hence automatically in scope if *All hosts in this Kerberos domain in scope for Kerberos* is selected). The main reason you might want to disable this would be if your machine was joined to a different domain from the one being authenticated against using Berserko (in which case, plain hostnames probably refer to hosts in the domain to which you are joined).
+
+If selected, the *Do not perform Kerberos authentication to servers which support NTLM* option will instruct Berserko not to attempt Kerberos authentication against hosts which support NTLM in addition to Kerberos (i.e. hosts that return both `WWW-Authenticate: NTLM` and `WWW-Authenticate: Negotiate` headers).
+
 #### Logging ####
 The *Alert Level* and *Logging Level* can be configured here, to either NONE, NORMAL or VERBOSE.
 
@@ -109,3 +121,166 @@ The *Alert Level* and *Logging Level* can be configured here, to either NONE, NO
 * Use of already acquired Kerberos tickets on domain-joined machines (not sure if this is possible or not)
 * Capability to authenticate to multiple domains at the same time (this should work fine)
 * Better control over forwardable tickets and delegation
+
+## Domain DNS names, NETBIOS names, KDC hostnames and all that ##
+
+Berserko needs to know the domain DNS name, and the hostname (or IP address) of a KDC in order to work correctly. You might not have these, so here are some hints and tips for getting hold of them. We'll assume that you have domain credentials in the form of username and password. You might also have one or more of {domain DNS name, domain NETBIOS name, KDC hostname} (but not both the domain DNS name and the DC hostname, because if that were the case you already have everything you need).
+
+We'll use the term *KDC* below, although bear in mind that if you're working with a Windows domain, this is going to be a domain controller. And we'll also say *KDC hostname* as shorthand for *KDC hostname or IP address*, but you should note that Berserko is equally happy with either hostname or IP address.
+
+Most of what follows is specific to Windows domains.
+
+##### If you have the FQDN for a KDC #####
+
+You should be able to obtain the domain DNS name just by removing the first component (i.e. the hostname).
+
+##### If you are on a domain-joined Windows machine (or have access to one) #####
+
+Check the `USERDOMAIN` and `LOGONSERVER` environment variables. These should contain the domain DNS name and KDC hostname respectively, and you'll be done.
+
+There's also a good chance that your DNS server is itself a KDC.
+
+#####  If your DNS server is in the domain #####
+
+Check the DNS suffix for your network connection. This might well be the domain DNS name.
+There are instructions below on how to use this to get the KDC hostname.
+
+#####  If you can reach a server in the domain which supports NTLM authentication #####
+
+There's a handy nmap script (`http-ntlm-info`) you can use here.
+Note this will need to be a server that actually returns `WWW-Authenticate: NTLM`. If it only returns `WWW-Authenticate: Negotiate` that's not sufficient. Of course if the web server you're interested in supports NTLM then maybe you don't need Berserko in the first place.
+You'll also need to know the root URL for an application on the server (and provide this as the `http-ntlm-info.root` parameter).
+
+```
+nmap -n -Pn -sS -p80 --script http-ntlm-info --script-args http-ntlm-info.root=/path_to_app/ 192.168.1.1
+
+Starting Nmap 7.00 ( https://nmap.org ) at 2017-06-28 13:24 GMT Daylight Time
+Nmap scan report for 192.168.1.1
+Host is up (0.00s latency).
+PORT   STATE SERVICE
+80/tcp open  http
+| http-ntlm-info:
+|   Target_Name: MYDOMAIN
+|   NetBIOS_Domain_Name: MYDOMAIN
+|   NetBIOS_Computer_Name: WEB1
+|   DNS_Domain_Name: mydomain.local
+|   DNS_Computer_Name: WEB1.mydomain.local
+|   DNS_Tree_Name: mydomain.local
+|_  Product_Version: 6.3 (Build 9600)
+```
+
+The `DNS_Domain_Name` field contains the value you're looking for. There are instructions below on how to use this to get the KDC hostname.
+
+#####  If you have the domain DNS name but not the KDC hostname #####
+
+Assuming your DNS server is in the domain, a SRV query should get the hostname of a KDC for you.
+
+You can do this using *dig*. Append the DNS domain name to `_kerberos._tcp`:
+
+```
+dig SRV _kerberos._tcp.mydomain.local
+
+<snip>
+
+;; ANSWER SECTION:
+_kerberos._tcp.mydomain.local. 600 IN   SRV     0 100 88 dc1.mydomain.local.
+
+<snip>
+```
+
+Get what you need (`dc1.mydomain.local` in this case) from the answer section.
+
+Or with *nslookup*:
+
+```
+nslookup -type=SRV _kerberos._tcp.mydomain.local
+Server:  UnKnown
+Address:  192.168.1.1
+
+_kerberos._tcp.mydomain.local   SRV service location:
+          priority       = 0
+          weight         = 100
+          port           = 88
+          svr hostname   = dc1.mydomain.local
+dc1.mydomain.local      internet address = 192.168.1.1
+```
+
+`svr_hostname` is what you need here.
+
+But the easiest thing to do is probably to use Berserko's *Autolocate KDC* button, which will make the SRV query for you, assuming you have filled in the *Domain DNS Name* box.
+
+#####  If you only have the domain NETBIOS name, but don't know the domain DNS name or the hostname of a KDC #####
+
+This is quite a common situation - you might be given credentials for ```DOMAIN\username``` but nothing else.
+Here you can try to obtain the hostname of a KDC using NBNS.
+Note that this is what Internet Explorer will do on a non-domain-joined machine when you give it ```DOMAIN\username``` credentials for a site requesting Negotiate authentication. It sends an NBNS query of type <1c>, specifying the NETBIOS name of the domain (and the DC will respond to it). Unfortunately there doesn't seem to be an easy way of doing this from the command line in Windows.
+
+Instead, you can use the [nbtscan-1.0.35 tool](http://www.unixwiz.net/tools/nbtscan.html). Use it to scan the IP range where you think the KDC might be, and look for <1c> entries that match.
+
+```
+nbtscan-1.0.35.exe -f 192.168.1.0/24
+<snip>
+
+192.168.1.1  MYD\DC1                         SHARING DC
+  DC1            <00> UNIQUE Workstation Service
+  MYD            <00> GROUP  Domain Name
+  MYD            <1c> GROUP  Domain Controller
+  DC1            <20> UNIQUE File Server Service
+  MYD            <1b> UNIQUE Domain Master Browser
+  00:0c:29:11:22:33   ETHER  DC1
+```
+
+This shows that `DC1` (at 192.168.1.1) is the domain controller for the domain with NETBIOS name `MYD`.
+
+On Linux, `nbtscan` with the `-f` flag will do a very similar job. You could also try the `auxiliary/scanner/netbios/nbname` module in Metasploit.
+
+Hopefully one of these tools will get you the KDC hostname or IP address, then you can use the steps below.
+
+#####  If you have the hostname (or IP address) of a KDC, but not the domain DNS name #####
+
+There are a variety of things you can do here. The simplest thing is probably to use nmap's 'smb-os-discovery' script. You can run this against a KDC (or indeed against any domain-joined machine with port 445 open).
+
+```
+nmap -n -Pn -p445 --script smb-os-discovery 192.168.1.1
+
+Starting Nmap 7.00 ( https://nmap.org ) at 2017-08-07 22:41 GMT Daylight Time
+Nmap scan report for 192.168.1.1
+Host is up (0.00s latency).
+PORT    STATE SERVICE
+445/tcp open  microsoft-ds
+MAC Address: 00:0C:29:00:00:00 (VMware)
+
+Host script results:
+| smb-os-discovery:
+|   OS: Windows Server 2012 R2 Standard 9600 (Windows Server 2012 R2 Standard 6.3)
+|   OS CPE: cpe:/o:microsoft:windows_server_2012::-
+|   Computer name: DC1
+|   NetBIOS computer name: DC1
+|   Domain name: mydomain.local
+|   Forest name: mydomain.local
+|   FQDN: DC1.mydomain.local
+|_  System time: 2017-08-07T22:41:54+01:00
+```
+
+The `Domain name` field is what you need.
+
+Alternatively, you could use PowerShell, against a DC:
+
+```
+PS C:\Windows\system32\WindowsPowerShell\v1.0> $de = new-object System.DirectoryServices.DirectoryEntry "LDAP://192.168.1.1/rootDSE","",""
+PS C:\Windows\system32\WindowsPowerShell\v1.0> $de.Properties.defaultNamingContext
+DC=mydomain,DC=local
+```
+
+Join the various *DC* components with dots to get the DNS domain name (```mydomain.local``` here).
+
+Or use an LDAP client application such as *ldp*, connect to the DC (you don't have to bind) and read out the *defaultNamingContext* attribute.
+
+#####  If you have none of the above #####
+
+You'll have to start from scratch!
+
+You could try the various NBNS techniques described above.
+Alternatively, perform an nmap scan across a suitable range to find hosts with port 88/tcp open. These should be KDCs.
+
+With a bit of luck, one of these ideas will get you KDC hostname and then you can proceed as described above.
