@@ -63,7 +63,7 @@ Having supplied the credentials, you can use the *Test credentials* button. This
 
 The password will not be saved in the Berserko config for next time unless the *Save password in Burp config?* checkbox is ticked. All other settings will be saved though.
 
-### Delegation ###
+#### Delegation ####
 Some applications use Kerberos delegation on the server side to forward the client's identity to other servers (but there isn't an easy way to determine from the client side if this is in use).
 
 Berserko does support this, but there is a catch. Delegation only works if the user has a *forwardable* TGT (ticket-granting ticket). The Java implementation of Kerberos sadly doesn't provide a way to programmatically specify that a forwardable ticket should be acquired. This can only be done by adding an appropriate entry to the *krb5.conf* configuration file. 
@@ -130,22 +130,22 @@ We'll use the term *KDC* below, although bear in mind that if you're working wit
 
 Most of what follows is specific to Windows domains.
 
-##### If you have the FQDN for a KDC #####
+#### If you have the FQDN for a KDC ####
 
 You should be able to obtain the domain DNS name just by removing the first component (i.e. the hostname).
 
-##### If you are on a domain-joined Windows machine (or have access to one) #####
+#### If you are on a domain-joined Windows machine (or have access to one) ####
 
 Check the `USERDOMAIN` and `LOGONSERVER` environment variables. These should contain the domain DNS name and KDC hostname respectively, and you'll be done.
 
 There's also a good chance that your DNS server is itself a KDC.
 
-#####  If your DNS server is in the domain #####
+####  If your DNS server is in the domain ####
 
 Check the DNS suffix for your network connection. This might well be the domain DNS name.
 There are instructions below on how to use this to get the KDC hostname.
 
-#####  If you can reach a server in the domain which supports NTLM authentication #####
+####  If you can reach a server in the domain which supports NTLM authentication ####
 
 There's a handy nmap script (`http-ntlm-info`) you can use here.
 Note this will need to be a server that actually returns `WWW-Authenticate: NTLM`. If it only returns `WWW-Authenticate: Negotiate` that's not sufficient. Of course if the web server you're interested in supports NTLM then maybe you don't need Berserko in the first place.
@@ -171,7 +171,7 @@ PORT   STATE SERVICE
 
 The `DNS_Domain_Name` field contains the value you're looking for. There are instructions below on how to use this to get the KDC hostname.
 
-#####  If you have the domain DNS name but not the KDC hostname #####
+####  If you have the domain DNS name but not the KDC hostname ####
 
 Assuming your DNS server is in the domain, a SRV query should get the hostname of a KDC for you.
 
@@ -209,7 +209,7 @@ dc1.mydomain.local      internet address = 192.168.1.1
 
 But the easiest thing to do is probably to use Berserko's *Autolocate KDC* button, which will make the SRV query for you, assuming you have filled in the *Domain DNS Name* box.
 
-#####  If you only have the domain NETBIOS name, but don't know the domain DNS name or the hostname of a KDC #####
+####  If you only have the domain NETBIOS name, but don't know the domain DNS name or the hostname of a KDC ####
 
 This is quite a common situation - you might be given credentials for ```DOMAIN\username``` but nothing else.
 Here you can try to obtain the hostname of a KDC using NBNS.
@@ -236,7 +236,7 @@ On Linux, `nbtscan` with the `-f` flag will do a very similar job. You could als
 
 Hopefully one of these tools will get you the KDC hostname or IP address, then you can use the steps below.
 
-#####  If you have the hostname (or IP address) of a KDC, but not the domain DNS name #####
+####  If you have the hostname (or IP address) of a KDC, but not the domain DNS name ####
 
 There are a variety of things you can do here. The simplest thing is probably to use nmap's 'smb-os-discovery' script. You can run this against a KDC (or indeed against any domain-joined machine with port 445 open).
 
@@ -276,7 +276,7 @@ Join the various *DC* components with dots to get the DNS domain name (```mydoma
 
 Or use an LDAP client application such as *ldp*, connect to the DC (you don't have to bind) and read out the *defaultNamingContext* attribute.
 
-#####  If you have none of the above #####
+####  If you have none of the above ####
 
 You'll have to start from scratch!
 
