@@ -1,3 +1,9 @@
+10 August 2017      - v1.0
+* Added new scope functionality, so that Berserko can be instructed to authenticate to hosts which don't appear to be in the Kerberos realm
+* Added support for authenticating to Kerberos services on non-standard ports 
+* Added "Clear Kerberos State" button
+* Bug fixes
+
 27 January 2017     - v0.9 (beta)
 * Allow krb5.conf files to be specified within the GUI (and created)
 
