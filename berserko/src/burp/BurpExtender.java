@@ -1788,8 +1788,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JButton scopeRemoveButton;
 	
 	JButton scopeHelpButton;
-	//JButton ignoreNTLMServersHelpButton;
-	//JButton includePlainhostnamesHelpButton;
 	
 	// logging
 	JLabel alertLevelLabel;
@@ -1815,7 +1813,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	
 	// delegation
 	private final String forwardableTgtString = "TGT is forwardable so delegation should work.";
-	private final String notForwardableTgtString = "TGT is not forwardable so delegation will not work - you should use the \"Create local krb5.conf file\" button to fix this.";
+	private final String notForwardableTgtString = "TGT is not forwardable so delegation will not work - you should use the \"Create krb5.conf file\" button to fix this.";
 	private final String krb5FileHelpString = "The krb5.conf file which will be used (and controls whether delegation is enabled).";
 	private final String checkCurrentKrb5ConfigHelpString = "Check if the specified krb5.conf file sets forwarding enabled.";
 	private final String delegationControlsHelpString = "\"Change...\" lets you specify the location of the krb5.conf file.\n\n\"Create krb5.conf file\" creates a new minimal krb5.conf file, which will enable delegation, at a location of your choice on the file system.\n\n\"Check current config\" will verify that the specified krb5.conf file exists, and has delegation enabled.";
@@ -1824,9 +1822,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private final String authStrategyHelpString = "There are three possible approaches here:\n\nReactive: when a 401 response is received from the server, add an appropriate Kerberos authentication header and resend the request. This is what Fiddler does.\nProactive: for hosts which are in scope for Kerberos authentication, add the Kerberos authentication header to outgoing requests (i.e. don't wait to get a 401).\nProactive after 401: use the reactive strategy for the first Kerberos authentication against a particular host, then if it was successful, move to proactive.\n\nThe Reactive approach is perhaps the most \"correct\", but is slower (requires an extra HTTP round trip to the server).\nThe Proactive approach is faster.\nThe Proactive after 401 approach is usually a good compromise.";
 	
 	// scope
-	private final String scopeHelpString = "XXXX write me XXXX";
-	//private final String ignoreNTLMServersHelpString = "If this is selected, Kerberos authentication will not be performed against hosts which also support NTLM (as evidenced by a WWW-Authenticate: NTLM response header).\n\nThe purpose of selecting this would be to, for example, use Burp's existing NTLM authentication capability for these hosts.";
-	//private final String includePlainhostnamesHelpString = "If this is selected, Kerberos authentication will be attempted against hosts which are specified by \"plain hostnames\", i.e. hostnames that are not qualified with the domain.\n\nThe only reason you might want this would be if your machine was joined to a different domain from the one being authenticated against using this extension.";
+	private final String scopeHelpString = "In this section, you can define which hosts are considered to be in scope for Kerberos authentication.\n\n\"All hosts in this Kerberos domain in scope for Kerberos\" is the default.\nThis means that Berserko will attempt Kerberos authentication only to web servers whose hostname ends with the domain DNS name.\n\n\"All hosts in scope for Kerberos authentication\" means that you don't need to bother specifying the scope manually.\nThe potential disadvantage of this configuration is that it might lead to Berserko sending Kerberos requests to the KDC to acquire service\ntickets for hosts which are not in the domain. This might cause performance issues, and might cause privacy issues (if you don't want this\ninformation leaked to the KDC).\n\nThe list box on the right allows you to specify additional hosts which should be in scope.\nIt is ignored when \"All hosts in scope for Kerberos authentication\" is selected.\n\nIf \"Plain hostnames considered part of domain\" is selected, Kerberos authentication will be attempted against hosts which are\nspecified by \"plain hostnames\", i.e. hostnames that are not qualified with the domain.\nThe only reason you might not want this would be if your machine was joined to a different domain from the one being\nauthenticated against using this extension.\n\nIf \"Do not perform Kerberos authentication to servers which support NTLM\" is selected, Kerberos authentication will not be performed\nagainst hosts which also support NTLM (as evidenced by a WWW-Authenticate: NTLM response header).\nThe purpose of selecting this would be to, for example, use Burp's existing NTLM authentication capability for these hosts.";
 	
 	// logging
 	private final String alertLevelHelpString = "Controls level of logging performed to Burp's Alerts tab.";
@@ -2414,23 +2410,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.gridy = 0;
 				scopePanel.add(scopeHelpButton, gbc);
 				
-				/*
-				gbc.insets = new Insets(5, 5, 5, 5);
-				gbc.fill = GridBagConstraints.NONE;
-				gbc.weightx = 0.0;
-				gbc.weighty = 0.0;
-				gbc.gridx = 1;
-				gbc.gridy = 0;
-				scopePanel.add(ignoreNTLMServersHelpButton, gbc);
-				gbc.insets = new Insets(5, 5, 5, 5);
-				gbc.fill = GridBagConstraints.NONE;
-				gbc.weightx = 0.0;
-				gbc.weighty = 0.0;
-				gbc.gridx = 1;
-				gbc.gridy = 1;
-				scopePanel.add(includePlainhostnamesHelpButton, gbc);
-				*/
-
 				// MAIN PANEL LAYOUT
 
 				gbc.gridwidth = 5;
@@ -2864,12 +2843,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				scopeHelpButton
 						.addActionListener(new HelpButtonActionListener(
 								scopeHelpString));				
-				//includePlainhostnamesHelpButton
-				//		.addActionListener(new HelpButtonActionListener(
-				//				includePlainhostnamesHelpString));
-				//ignoreNTLMServersHelpButton
-				//		.addActionListener(new HelpButtonActionListener(
-				//				ignoreNTLMServersHelpString));
 				checkCurrentKrb5ConfigHelpButton
 						.addActionListener(new HelpButtonActionListener(checkCurrentKrb5ConfigHelpString));
 				delegationControlsHelpButton
@@ -3059,7 +3032,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			JOptionPane
 			.showMessageDialog(
 					null,
-					"It is not recommended to set all hosts in scope in combination with the 'Proactive' strategy, as this may lead to lots of spurious Kerberos traffic.\n\nIt is suggested to use 'Proactive after 401' instead.",
+					"It is not recommended to set all hosts in scope in combination with the 'Proactive' strategy, as this may lead to lots of spurious Kerberos traffic (and possible privacy issues).\n\nIt is suggested to use 'Proactive after 401' instead.",
 					"Warning", JOptionPane.WARNING_MESSAGE);
 		}
 	}
@@ -3123,9 +3096,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		}
 
 		if ((newDomainDnsNameTextField.getText() != domainDnsName)
-				|| (newKdcTextField.getText() != kdcHost)) // don't do anything
-															// if values are
-															// unchanged
+				|| (newKdcTextField.getText() != kdcHost)) // don't do anything if values are unchanged
 		{
 			domainDnsName = newDomainDnsNameTextField.getText();
 			domainDnsNameTextField.setText(newDomainDnsNameTextField.getText());
@@ -3167,7 +3138,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		JTextField hostnameTextField = new JTextField();
 		hostnameTextField.setText(input);
 		
-		final JComponent[] inputs = new JComponent[] { new JLabel("Specify a hostname"), new JLabel( "You can use wildcards (* matches zero or more characters, ? matches any character except a dot"),
+		final JComponent[] inputs = new JComponent[] { new JLabel("Specify a hostname"), new JLabel( "You can use wildcards (* matches zero or more characters, ? matches any character except a dot)"),
 				hostnameTextField};
 		int result = JOptionPane.showConfirmDialog(null, inputs, input.length() == 0 ? "Add host" : "Edit host", JOptionPane.OK_CANCEL_OPTION,
 						JOptionPane.PLAIN_MESSAGE);
@@ -3204,10 +3175,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		}
 
 		if ((newUsernameTextField.getText() != username)
-				|| (newPasswordField.getText() != password)) // don't do
-																// anything if
-																// values are
-																// unchanged
+				|| (newPasswordField.getText() != password)) // don't do anything if values are unchanged
 		{
 			username = newUsernameTextField.getText();
 			usernameTextField.setText(newUsernameTextField.getText());
@@ -3218,11 +3186,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			if (username.isEmpty()) {
 				credentialsStatusTextField.setText("Username cannot be empty");
 			}
-			/*
-			 * else if( password.isEmpty()) {
-			 * credentialsStatusTextField.setText( "Password cannot be empty");
-			 * }
-			 */
 
 			setCredentials(username, password);
 		}
@@ -3235,12 +3198,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					"Error", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-
-		/*
-		 * if( passwordField.getText().isEmpty()) {
-		 * JOptionPane.showMessageDialog( null, "Password not set yet", "Error",
-		 * JOptionPane.ERROR_MESSAGE); return; }
-		 */
 
 		if (!(domainStatusTextField.getText().equals(kdcTestSuccessString))) {
 			int n = JOptionPane
