@@ -1,7 +1,7 @@
 # Berserko - Kerberos authentication for Burp Suite
 Released as open source by NCC Group Plc - http://www.nccgroup.trust/
 
-Developed by Richard Turnbull, richard [dot] turnbull [at] nccgroup [dot] trust
+Developed by Richard Turnbull, richard [dot] turnbull [at] nccgroup [dot] com
 
 http://www.github.com/nccgroup/Berserko
 
