@@ -1,3 +1,7 @@
+20 November 2018    - v1.1
+* No significant new functionality.
+* Documentation updated regarding support for domain trusts. 
+
 10 August 2017      - v1.0
 * Added new scope functionality, so that Berserko can be instructed to authenticate to hosts which don't appear to be in the Kerberos realm
 * Added support for authenticating to Kerberos services on non-standard ports 
