@@ -110,6 +110,9 @@ The *Alert Level* and *Logging Level* can be configured here, to either NONE, NO
 
 *Logging Level* controls the amount of information sent to Berserko's standard output (this can be viewed on the *Extender* tab). Note that increasing the *Logging Level* to VERBOSE will cause more information to be provided about any errors or exceptions that might occur.
 
+### Domain Trusts ###
+If Kerberos domain trusts are in use in your environment, you can find some guidance [here](docs/domain_trusts.md).
+
 ### Bugs ###
 * If the UI for the Berserko tab doesn't display properly, try using Burp's Metal theme.
 
