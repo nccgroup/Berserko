@@ -392,18 +392,33 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		logConfig();
 	}
 
-	private void addSpnToListIfNotInvalid(List<String> l, String spn,
-			String hostname, int port) {
-		if (!failedSpns.contains(spn)) {
-			if (failedSpnsForHost.containsKey(hostnameColonPort( hostname, port).toLowerCase())) {
-				if (failedSpnsForHost.get(hostnameColonPort( hostname, port).toLowerCase()).contains(spn)) {
-					return;
+	private void addSpnToListIfNotInvalid(List<String> l,
+			String hostname, int port, String realm) {
+		
+		List<String> spns = new ArrayList<String>();
+		
+		spns.add( "HTTP/" + hostname.toLowerCase() + "@" + realm);
+		spns.add( "http/" + hostname.toLowerCase() + "@" + realm);
+		
+		if( port != 80 && port != 443)
+		{
+			spns.add( "HTTP/" + hostname.toLowerCase() + ":" + port + "@" + realm);
+			spns.add( "http/" + hostname.toLowerCase() + ":" + port + "@" + realm);
+		}
+		
+		for( String spn : spns)
+		{
+			if (!failedSpns.contains(spn)) {
+				if (failedSpnsForHost.containsKey(hostnameColonPort( hostname, port).toLowerCase())) {
+					if (failedSpnsForHost.get(hostnameColonPort( hostname, port).toLowerCase()).contains(spn)) {
+						return;
+					}
 				}
+				l.add(spn);
 			}
-			l.add(spn);
 		}
 	}
-
+	
 	private List<String> hostnameToSpn(String hostname, int port) {
 		List<String> ret = new ArrayList<String>();
 
@@ -415,39 +430,29 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			}
 
 			if (isPlainhostname(hostname)) {
-				addSpnToListIfNotInvalid(ret, "HTTP/"
-						+ expandHostname(hostname).toLowerCase() + "@"
-						+ getRealmName(), hostname, port);
-				addSpnToListIfNotInvalid(ret, "http/"
-						+ expandHostname(hostname).toLowerCase() + "@"
-						+ getRealmName(), hostname, port);
-				addSpnToListIfNotInvalid(ret, "HTTP/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname, port);
-				addSpnToListIfNotInvalid(ret, "http/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname, port);
+				addSpnToListIfNotInvalid(ret, expandHostname(hostname).toLowerCase(), port, getRealmName());
+				addSpnToListIfNotInvalid(ret, hostname.toLowerCase(), port, getRealmName());
 			} else {
-				addSpnToListIfNotInvalid(ret, "HTTP/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname, port);
-				addSpnToListIfNotInvalid(ret, "http/" + hostname.toLowerCase()
-						+ "@" + getRealmName(), hostname, port);
-				if( port != 80 && port != 443)
+				addSpnToListIfNotInvalid(ret, hostname.toLowerCase(), port, getRealmName());
+				
+				String[] tokens = hostname.split( "\\.");
+				if( tokens.length >= 3)
 				{
-					addSpnToListIfNotInvalid(ret, "http/" + hostname.toLowerCase() + ":" + port
-							+ "@" + getRealmName(), hostname, port);
+					for( int ii=1; ii<tokens.length - 1; ii++)
+					{
+						String realm = String.join( ".", Arrays.copyOfRange( tokens, ii, tokens.length));
+						
+						if( realm.toUpperCase() != getRealmName().toUpperCase())
+						{
+							addSpnToListIfNotInvalid(ret, hostname.toLowerCase(), port, realm.toUpperCase());
+						}
+					}
 				}
 				
-				// TODO: no need to try plain hostnames here if it doesn't end with DNS domain name?
-				addSpnToListIfNotInvalid(ret,
-						"HTTP/" + getPlainHostname(hostname).toLowerCase()
-								+ "@" + getRealmName(), hostname, port);
-				addSpnToListIfNotInvalid(ret,
-						"http/" + getPlainHostname(hostname).toLowerCase()
-								+ "@" + getRealmName(), hostname, port);
-				if( port != 80 && port != 443)
+				if( hostname.toLowerCase().endsWith(getRealmName().toLowerCase()))
 				{
-					addSpnToListIfNotInvalid(ret, "http/" + getPlainHostname(hostname).toLowerCase() + ":" + port
-							+ "@" + getRealmName(), hostname, port);
-				}				
+					addSpnToListIfNotInvalid(ret, getPlainHostname(hostname).toLowerCase(), port, getRealmName());
+				}		
 			}
 		}
 
@@ -1193,6 +1198,12 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 			String encodedToken = "";
 			GSSContext context = null;
+			
+			System.out.println( "SPNs");
+			for( String spn : spns)
+			{
+				log(2, "SPN to try: " + spn);
+			}
 
 			for (String spn : spns) {
 				log(2, "Trying SPN: " + spn);
@@ -1242,6 +1253,17 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 						}
 						continue;
 					} else if (e.getMessage().contains(
+							"Message stream modified")) {
+						alertAndLog(
+								1,
+								String.format(
+										"Failed to acquire service ticket for %s - host is in a different realm?",
+										spn));
+						if (!failedSpns.contains(spn)) {
+							failedSpns.add(spn);
+						}
+						continue;
+					} else if (e.getMessage().contains(
 							"Failed to find any Kerberos tgt")
 							|| e.getMessage().contains("Ticket expired")) {
 						alertAndLog(
@@ -1259,7 +1281,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 						logException(2, e);
 					}
 
-					return null;
+					//return null;
 				}
 			}
 
