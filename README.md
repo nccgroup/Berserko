@@ -7,6 +7,23 @@ http://www.github.com/nccgroup/Berserko
 
 Released under AGPL, see LICENSE for more information
 
+***
+## :exclamation: Important Note :exclamation: ##
+
+Berserko is not currently compatible with Burp version 2, when it is launched in the normal way. You are likely to see a `Cannot locate Krb5Login module` error.
+This is because the version of OpenJDK being shipped with Burp 2 does not include some of the Kerberos functionality used by Berserko.
+Hopefully this will be addressed by PortSwigger shortly.
+
+In the meantime, Berserko should work if you launch Burp 2 using a full version of the Java runtime environment (i.e. not the one bundled with Burp).
+
+Assuming you have *java* in your path:
+
+    java -jar burpsuite_pro.jar
+
+See [Burp documentation on launching from the command line](https://support.portswigger.net/customer/portal/articles/1783038-launching-burp-suite-from-the-command-line).
+
+***
+
 ### Introduction ###
 Berserko is a Burp extension to add support for performing Kerberos authentication. This is useful for testing in a Windows domain when NTLM authentication is not supported (Burp already handles NTLM). Berserko does not require that the machine running Burp be domain-joined (or even that it is running Windows). 
 
