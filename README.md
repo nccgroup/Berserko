@@ -10,11 +10,9 @@ Released under AGPL, see LICENSE for more information
 ***
 ## :exclamation: Important Note :exclamation: ##
 
-Berserko is not currently compatible with Burp version 2, when it is launched in the normal way. You are likely to see a `Cannot locate Krb5Login module` error.
-This is because the version of OpenJDK being shipped with Burp 2 does not include some of the Kerberos functionality used by Berserko.
-Hopefully this will be addressed by PortSwigger shortly.
+**Berserko is not compatible with Burp versions from 2.0 to 2.1.02. This problem was fixed in [v2.1.03](http://releases.portswigger.net/2019/08/professional-2103.html).** There are no problems with Burp v1.
 
-In the meantime, Berserko should work if you launch Burp 2 using a full version of the Java runtime environment (i.e. not the one bundled with Burp).
+The v2 issue was caused by the version of OpenJDK being shipped with Burp 2 versions earlier than 2.1.03 not including some of the Kerberos functionality used by Berserko. This would cause a `Cannot locate Krb5Login module` error when attempting to use Berserko. The obvious fix is to update to v2.1.03. If this is not possibe, Berserko should work if you launch Burp 2 using a full version of the Java runtime environment (i.e. not the one bundled with Burp).
 
 Assuming you have *java* in your path:
 
