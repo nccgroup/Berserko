@@ -3355,6 +3355,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			return;
 		}
 
+		setKrb5Config();
+		
 		setupKerberosConfig();
 
 		try {
