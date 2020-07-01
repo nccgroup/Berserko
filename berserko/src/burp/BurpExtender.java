@@ -1742,6 +1742,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	JLabel versionLabel;
 	JButton restoreDefaultsButton;
 	JButton clearStateButton;
+	JButton logTicketsButton;
 	
 	// panels
 	JPanel domainPanel;
@@ -1890,6 +1891,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 						+ versionString);
 				restoreDefaultsButton = new JButton("Restore default settings");
 				clearStateButton = new JButton("Clear Kerberos state");
+				logTicketsButton = new JButton("Write tickets to log");
 
 				domainPanel = new JPanel(new GridBagLayout());
 				domainPanel.setBorder(BorderFactory
@@ -2006,6 +2008,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				callbacks.customizeUiComponent(versionLabel);
 				callbacks.customizeUiComponent(restoreDefaultsButton);
 				callbacks.customizeUiComponent(clearStateButton);
+				callbacks.customizeUiComponent(logTicketsButton);
 				callbacks.customizeUiComponent(domainPanel);
 				callbacks.customizeUiComponent(credsPanel);
 				callbacks.customizeUiComponent(authenticationStrategyPanel);
@@ -2445,6 +2448,12 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				gbc.fill = GridBagConstraints.NONE;
 				gbc.weightx = 0.0;
 				gbc.weighty = 0.0;
+				gbc.gridx = 1;
+				gbc.gridy = 0;
+				mainPanel.add(logTicketsButton, gbc);
+				gbc.fill = GridBagConstraints.NONE;
+				gbc.weightx = 0.0;
+				gbc.weighty = 0.0;
 				gbc.gridx = 2;
 				gbc.gridy = 0;
 				mainPanel.add(restoreDefaultsButton, gbc);
@@ -2827,6 +2836,28 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					public void actionPerformed(ActionEvent e) {
 						setDefaultConfig();
 						initialiseGUIFromConfig();
+					}
+				});
+				
+				logTicketsButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						int ticketCount = 1;
+
+						if( loginContext == null || loginContext.getSubject() == null || loginContext.getSubject().getPrivateCredentials() == null)
+						{
+							log( 1, "No stored tickets");
+						}
+						else
+						{
+							for (Object ob : loginContext.getSubject().getPrivateCredentials()) {
+								if (ob instanceof KerberosTicket) {
+									KerberosTicket kt = (KerberosTicket) ob;
+									log( 1, String.format("=== TICKET %d - %s @ %s ==================", ticketCount, kt.getClient().toString(), kt.getServer().toString()));
+									ticketCount += 1;
+									log( 1, kt.toString());
+								}
+							}
+						}
 					}
 				});
 				
