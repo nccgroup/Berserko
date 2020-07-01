@@ -54,7 +54,9 @@ The *Do Kerberos authentication* checkbox is a master switch. Until it is enable
 
 The *Restore defaults* button will return Berserko to the default configuration (in which no domain details or user credentials are present).
 
-The *Clear Kerberos state* button will clear out all Kerberos tickets and other state on the client. There only reason you might need to use this would be if changes had been made to the Kerberos configuration on the server side and you wanted to start from a fresh state.
+The *Clear Kerberos state* button will clear out all Kerberos tickets and other state on the client. The only reason you might need to use this would be if changes had been made to the Kerberos configuration on the server side and you wanted to start from a fresh state.
+
+The *Write tickets to log* button will write information about your current Kerberos tickets to Berserko's log stream - this can be useful for debugging/troubleshooting. To see the logs go to Burp's *Extender* tab, select Berserko and look at the *Output* tab below. It might make sense to use the *Save to file* option here, because the ticket data can easily fill the log buffer in the GUI.
 
 Some controls have a help button that will pop up more information.
 

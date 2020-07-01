@@ -1,3 +1,7 @@
+01 July 2020		- v1.2
+* Added "Write tickets to log" feature
+* Modified "Test domain settings" feature so that it picks up the krb5.conf config
+
 20 November 2018    - v1.1
 * No significant new functionality.
 * Documentation updated regarding support for domain trusts. 
