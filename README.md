@@ -10,11 +10,11 @@ Released under AGPL, see LICENSE for more information
 ***
 ## :exclamation: Important Note :exclamation: ##
 
-**Berserko is not compatible with recent Burp versions.** There are no problems with Burp v1.
+**Berserko is not compatible with Burp v2 before v2020.5.1.** There are no problems with Burp v1.
 
-This is caused by the version of OpenJDK being shipped with recent Burp 2 versions not including some of the Kerberos functionality used by Berserko. This will cause a `java.lang.ClassNotFoundException: com.sun.security.jgss.ExtendedGSSContext` error when attempting to use Berserko. The problem has been reported to Portswigger and will hopefully be addressed soon.
+This is caused by the version of OpenJDK being shipped with earlier Burp 2 versions not including some of the Kerberos functionality used by Berserko. This will cause a `java.lang.ClassNotFoundException: com.sun.security.jgss.ExtendedGSSContext` error when attempting to use Berserko. 
 
-In the meantime, Berserko should work if you launch Burp 2 using a full version of the Java runtime environment (i.e. not the one bundled with Burp).
+The obvious workaround is to upgrade to v2020.5.1 or later. Alternatively, Berserko should work with any Burp v2 version if you launch using a full version of the Java runtime environment (i.e. not the one bundled with Burp).
 
 Assuming you have *java* in your path:
 
