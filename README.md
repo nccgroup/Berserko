@@ -94,8 +94,8 @@ The easiest thing to do, and the **recommended approach** is to use the *Create 
 If you're interested, the *krb5.conf* file which is created is very simple, and will have the following contents:
 
     [libdefaults]
-	    forwardable = true
-		
+        forwardable = true
+
 Alternatively, you could use the *Change* button to point at an existing *krb5.conf* file on the system. The only reason you might want to do this would be if there were other important Kerberos settings in this file that you wanted to be picked up by Berserko (which should work OK in theory, but has not been tested in practice). Note that the default location for this file on Linux is `/etc/krb5.conf` - other operating systems are less likely to have one. If you are pointing to an existing *krb5.conf* file, make sure you edit it to enable forwarding - add `forwardable = true` to the `[libdefaults]` section (or individually for each realm). But be careful. Asking Berserko to create the file for you is going to be the better option 99% of the time.
 
 If you want to know whether your delegation configuration is successful, use the *Check current config* button. This will tell you whether the *krb5.conf* file has been located, and whether the *forwardable* setting is correct. Note also that Berserko will tell you whether or not it successfully acquired a forwardable TGT when you use the *Test credentials* button. 
@@ -131,6 +131,13 @@ The *Alert Level* and *Logging Level* can be configured here, to either NONE, NO
 
 ### Domain Trusts ###
 If Kerberos domain trusts are in use in your environment, you can find some guidance [here](docs/domain_trusts.md).
+
+### Port Forwarding / Kerberos over TCP ###
+By default, Berserko performs all Kerberos interactions with the KDC over UDP (port 88). If you want to use TCP instead, this is possible. The most common reason for doing this is probably where an SSH port forward for TCP port 88 is in use. Just add `udp_preference_limit = 1` to your *krb5.conf* file, so it looks like this:
+
+    [libdefaults]
+        forwardable = true
+        udp_preference_limit = 1
 
 ### Bugs ###
 * If the UI for the Berserko tab doesn't display properly, try using Burp's Metal theme.
