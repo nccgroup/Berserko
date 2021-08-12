@@ -559,7 +559,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private String getTokenFromAuthenticateNegotiateResponseHeader(
 			String headerLine) {
 		String pattern = "WWW-Authenticate:\\s*Negotiate\\s*(.*)";
-		Pattern r = Pattern.compile(pattern);
+		Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
 
 		Matcher m = r.matcher(headerLine);
 		if (m.find()) {
@@ -572,7 +572,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private String getTokenFromAuthorizationNegotiateRequestHeader(
 			String headerLine) {
 		String pattern = "Authorization:\\s*Negotiate\\s*(.*)";
-		Pattern r = Pattern.compile(pattern);
+		Pattern r = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
 
 		Matcher m = r.matcher(headerLine);
 		if (m.find()) {
@@ -1140,7 +1140,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 	private boolean headersContainStartswith(List<String> headers, String target) {
 		for (String s : headers) {
-			if (s.startsWith(target)) {
+			if (s.toLowerCase().startsWith(target.toLowerCase())) {
 				return true;
 			}
 		}
@@ -1150,7 +1150,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 
 	private String getHeaderStartingWith(List<String> headers, String target) {
 		for (String s : headers) {
-			if (s.startsWith(target)) {
+			if (s.toLowerCase().startsWith(target.toLowerCase())) {
 				return s;
 			}
 		}
