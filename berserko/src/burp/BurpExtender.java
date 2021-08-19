@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 import javax.naming.Context;
+import javax.naming.NameNotFoundException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
@@ -118,6 +119,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	private List<String> hostnamesWithUnknownSpn = null;
 	private ContextCache contextCache = null;
 	private Map<String,Pattern> scopeStringRegexpMap = null;
+	private boolean spnHintsRead = false;
+	private Map<String,String> spnHints = null;
 	
 	// config
 	private String domainDnsName;
@@ -426,6 +429,8 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	{
 		try
 		{
+			log( 2, String.format("Doing CNAME lookup on %s", hostname));
+			
 			Hashtable<String, String> envProps = new Hashtable<String, String>();
 			envProps.put(Context.INITIAL_CONTEXT_FACTORY,
 					"com.sun.jndi.dns.DnsContextFactory");
@@ -439,13 +444,19 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 					if( attr.size() > 0)
 					{
 						String s = (String) attr.get(0);
+						log( 2, String.format("CNAME for %s is %s", hostname, s.substring(0, s.length()-1)));
 						return s.substring(0, s.length()-1);
 					}
 				}
 			}
 		}
+		catch( NameNotFoundException e)
+		{
+			log( 2, String.format( "CNAME not found for %s", hostname));
+		}
 		catch( Exception e)
 		{
+			log(1, String.format( "Exception performing DNS CNAME lookup: %s", e.getMessage()));
 			logException( 2, e);
 		}
 
@@ -462,11 +473,37 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			if (!hostnamesWithUnknownSpn.contains(hostnameColonPort(hostname, port).toLowerCase())) {
 				hostnamesWithUnknownSpn.add(hostnameColonPort(hostname, port).toLowerCase());
 			}
+			
+			if( !spnHintsRead && !(krb5File == null))
+			{
+				readSpnHintsFromConfigFile( krb5File);
+			}
+			
+			String hintHostname = "";
+			String hintRealm = "";
+			
+			if( spnHints != null)
+			{
+				if( spnHints.containsKey( hostname.toLowerCase()))
+				{
+					hintHostname = spnHints.get(hostname.toLowerCase());
+					if(hintHostname.indexOf("@") != -1)
+					{
+						hintRealm = hintHostname.split("@")[1];
+						hintHostname = hintHostname.split("@")[0];
+					}
+				}
+			}
 
 			// do a DNS lookup here, and if the result is a CNAME then do the below both with the uncanonicalised name and the canonicalised name
 			// might need to roll our own to do it over SOCKS - see https://github.com/callumdmay/java-dns-client
 
 			String canonicalHostname = getCNAME( hostname);
+			
+			if( canonicalHostname.equals( hintHostname))
+			{
+				canonicalHostname = "";
+			}
 
 			if (isPlainhostname(hostname)) {
 				addSpnToListIfNotInvalid(ret, expandHostname(hostname).toLowerCase(), port, getRealmName());
@@ -478,6 +515,12 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				addSpnToListIfNotInvalid(ret, expandHostname(canonicalHostname).toLowerCase(), port, getRealmName());
 				addSpnToListIfNotInvalid(ret, canonicalHostname.toLowerCase(), port, getRealmName());
 			}
+			
+			if( !hintHostname.equals("") && isPlainhostname(hintHostname))
+			{
+				addSpnToListIfNotInvalid(ret, expandHostname(hintHostname).toLowerCase(), port, getRealmName());
+				addSpnToListIfNotInvalid(ret, hintHostname.toLowerCase(), port, getRealmName());
+			}
 
 			if( !isPlainhostname(hostname))
 			{
@@ -487,6 +530,15 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			if( !canonicalHostname.equals("") && !isPlainhostname(canonicalHostname))
 			{
 				addSpnToListIfNotInvalid(ret, canonicalHostname.toLowerCase(), port, getRealmName());
+			}
+			
+			if( !hintHostname.equals("") && !isPlainhostname(hintHostname))
+			{
+				if( !hintRealm.equals(""))
+				{
+					addSpnToListIfNotInvalid(ret, hintHostname.toLowerCase(), port, hintRealm);
+				}
+				addSpnToListIfNotInvalid(ret, hintHostname.toLowerCase(), port, getRealmName());
 			}
 
 			if( !isPlainhostname(hostname))
@@ -530,6 +582,28 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				if( canonicalHostname.toLowerCase().endsWith(getRealmName().toLowerCase()))
 				{
 					addSpnToListIfNotInvalid(ret, getPlainHostname(canonicalHostname).toLowerCase(), port, getRealmName());
+				}
+			}
+			
+			if( !hintHostname.equals("") && !isPlainhostname(hintHostname) && hintRealm.equals(""))
+			{
+				String[] tokens = hintHostname.split( "\\.");
+				if( tokens.length >= 3)
+				{
+					for( int ii=1; ii<tokens.length - 1; ii++)
+					{
+						String realm = String.join( ".", Arrays.copyOfRange( tokens, ii, tokens.length));
+
+						if( realm.toUpperCase() != getRealmName().toUpperCase())
+						{
+							addSpnToListIfNotInvalid(ret, hintHostname.toLowerCase(), port, realm.toUpperCase());
+						}
+					}
+				}
+
+				if( hintHostname.toLowerCase().endsWith(getRealmName().toLowerCase()))
+				{
+					addSpnToListIfNotInvalid(ret, getPlainHostname(hintHostname).toLowerCase(), port, getRealmName());
 				}
 			}
 		}
@@ -627,7 +701,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 	}
 
 	private boolean isPlainhostname(String hostname) {
-		return (hostname.length() > 0) && (hostname.indexOf('.') == -1);
+		return (hostname.length() > 0) && (hostname.indexOf('.') == -1) && (hostname.indexOf('@') == -1);
 	}
 
 	private String buildAuthenticateHeaderFromToken(String token) {
@@ -1277,7 +1351,6 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 			String encodedToken = "";
 			GSSContext context = null;
 			
-			System.out.println( "SPNs");
 			for( String spn : spns)
 			{
 				log(2, "SPN to try: " + spn);
@@ -1512,6 +1585,7 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 		failedSpns = new ArrayList<String>();;
 		failedSpnsForHost = new HashMap<String, List<String>>();
 		hostnamesWithUnknownSpn = new ArrayList<String>();
+		spnHintsRead = false;
 	}
 
 	private void setupLoginContext() {
@@ -1741,6 +1815,51 @@ public class BurpExtender implements IBurpExtender, IHttpListener, ITab,
 				return null;
 			}
 		}
+	}
+	
+	private boolean readSpnHintsFromConfigFile(String configFilename) {
+		try {
+			spnHints = new HashMap<String,String>();
+			spnHintsRead = true;
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(
+					new FileInputStream(configFilename)));
+
+			boolean inHintsSection = false;
+
+			do {
+				String s = br.readLine();
+				if (s == null) {
+					break;
+				}
+
+				s = s.trim();
+
+				if (s.equals("[berserko_spn_hints]")) {
+					inHintsSection = true;
+				} else if (s.startsWith("[")) {
+					inHintsSection = false;
+				}
+
+				if (inHintsSection) {
+					String[] tokens = s.split("=");
+					if( tokens.length == 2)
+					{
+						spnHints.put( tokens[0].trim().toLowerCase(), tokens[1].trim());
+					}
+				}
+			} while (true);
+
+			br.close();
+		} catch (FileNotFoundException e) {
+			log(1, String.format("Couldn't open config file %s to read SPN hints",
+					configFilename));
+		} catch (IOException e) {
+			log(1, String.format("Error parsing config file %sk",
+					configFilename));
+		}
+
+		return false;
 	}
 
 	private boolean checkConfigFileForForwardable(String configFilename) {
