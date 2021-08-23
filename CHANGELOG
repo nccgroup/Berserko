@@ -1,3 +1,8 @@
+23 August 2020		- v1.3
+* Do CNAME lookup on host when gathering candidate SPNs
+* Support for [berserko_spn_hints] section in config file
+* Support for lower-case "www-authenticate" and "authorization" response headers
+
 01 July 2020		- v1.2
 * Added "Write tickets to log" feature
 * Modified "Test domain settings" feature so that it picks up the krb5.conf config

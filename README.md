@@ -30,7 +30,7 @@ Berserko is a Burp extension to add support for performing Kerberos authenticati
 The only existing solution that we are currently aware of for testing Kerberos applications using Burp is to chain through [Fiddler](http://www.telerik.com/fiddler), with authentication set up according to [these instructions](http://stackoverflow.com/questions/26499875/kerberos-authentication-with-burp-proxy). But Fiddler is Windows-only, and chaining proxies adds complexity and hinders performance, so it's nice to have Kerberos capability within Burp itself. 
 
 ### System Requirements ###
-* Burp Suite - tested on version 1.7.05 (both Pro and Free)
+* Burp Suite
 * Tested on Windows and Linux (Kali)
 
 ### Installation ###
@@ -67,7 +67,7 @@ The *Domain DNS Name* should be the DNS name of the domain you wish to authentic
 
 The *KDC Host* should be the hostname (or IP address) of a Kerberos KDC (Key Distribution Center). In a Windows domain, a KDC is simply a domain controller.
 
-Having supplied the *Domain DNS Name*, you can use the *Auto* button to try to automatically locate a KDC. It does this by sending a DNS SRV query for the Kerberos service. If one of your DNS servers is a domain controller for the correct domain, this should work. If not, it won't. 
+Having supplied the *Domain DNS Name*, you can use the *Auto* button to try to automatically locate a KDC. It does this by sending a DNS SRV query for the Kerberos service. If one of your DNS servers is a domain controller for the correct domain, this should work. If not, it won't. :exclamation:**This functionality won't work in recent versions of Burp, as the required DNS libraries are not being shipped as part of the bundled JRE. You can get round this by launching under a full JRE as described at the top of this README**.:exclamation: 
 
 When the *Domain DNS Name* and *KDC Host* have been entered, use the *Test domain settings* button to test connectivity. All being well, you will get a *Successfully contacted Kerberos service* response. 
 
@@ -138,6 +138,15 @@ By default, Berserko performs all Kerberos interactions with the KDC over UDP (p
     [libdefaults]
         forwardable = true
         udp_preference_limit = 1
+		
+### Advanced Configuration
+It is possible to configure the SPN that will be used for a particular host, by including a `[berserko_spn_hints]` section in the *krb5.conf* file (see above). The syntax is shown below.
+
+    [berserko_spn_hints]
+        server1.foo.com=web.domain.local@DOMAIN.LOCAL
+		server2.bar.org=app.domain2.local
+		
+The target server is on the left hand side of the equals sign, and the SPN to be used is on the right. The realm for the SPN can optionally be specified (if not, Berserko will attempt to determine the correct realm as normal). Do not include the `HTTP/` part of the SPN here.
 
 ### Bugs ###
 * If the UI for the Berserko tab doesn't display properly, try using Burp's Metal theme.
