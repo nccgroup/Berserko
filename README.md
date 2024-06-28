@@ -10,17 +10,7 @@ Released under AGPL, see LICENSE for more information
 ***
 ## :exclamation: Important Note :exclamation: ##
 
-**Berserko is not compatible with Burp v2 before v2020.5.1.** There are no problems with Burp v1.
-
-This is caused by the version of OpenJDK being shipped with earlier Burp 2 versions not including some of the Kerberos functionality used by Berserko. This will cause a `java.lang.ClassNotFoundException: com.sun.security.jgss.ExtendedGSSContext` error when attempting to use Berserko. 
-
-The obvious workaround is to upgrade to v2020.5.1 or later. Alternatively, Berserko should work with any Burp v2 version if you launch using a full version of the Java runtime environment (i.e. not the one bundled with Burp).
-
-Assuming you have *java* in your path:
-
-    java -jar burpsuite_pro.jar
-
-See [Burp documentation on launching from the command line](https://support.portswigger.net/customer/portal/articles/1783038-launching-burp-suite-from-the-command-line).
+Further development of Berserko will take place at [https://github.com/rteatea/Berserko](https://github.com/rteatea/Berserko)
 
 ***
 
@@ -159,3 +149,18 @@ The target server is on the left hand side of the equals sign, and the SPN to be
 * Use of already acquired Kerberos tickets on domain-joined machines (not sure if this is possible or not)
 * Capability to authenticate to multiple domains at the same time (this should work fine)
 * Better control over forwardable tickets and delegation
+
+***
+## :exclamation: Important Note :exclamation: ##
+
+**Berserko is not compatible with Burp v2 before v2020.5.1.** There are no problems with Burp v1.
+
+This is caused by the version of OpenJDK being shipped with earlier Burp 2 versions not including some of the Kerberos functionality used by Berserko. This will cause a `java.lang.ClassNotFoundException: com.sun.security.jgss.ExtendedGSSContext` error when attempting to use Berserko. 
+
+The obvious workaround is to upgrade to v2020.5.1 or later. Alternatively, Berserko should work with any Burp v2 version if you launch using a full version of the Java runtime environment (i.e. not the one bundled with Burp).
+
+Assuming you have *java* in your path:
+
+    java -jar burpsuite_pro.jar
+
+See [Burp documentation on launching from the command line](https://support.portswigger.net/customer/portal/articles/1783038-launching-burp-suite-from-the-command-line).
